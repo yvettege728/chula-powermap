@@ -20,15 +20,17 @@ export function validateAnswers(answers) {
 export function validateSubmitPayload(payload) {
   const VALID_VISIBILITY = ["private", "public-anon", "public-named"];
   const VALID_SOURCE = ["form", "ai-interview"];
+  const VALID_KIND = ["testimony", "photograph", "document", "drawing", "link", "other"];
+  const VALID_SITE = ["S05", "S01", "S04", "S09", "S10", "S08", "S03", "S06", "S07", "other"];
 
   if (!payload || typeof payload !== "object") {
     return { ok: false, error: "payload must be an object" };
   }
-  if (typeof payload.kind !== "string" || payload.kind.trim().length === 0) {
-    return { ok: false, error: "kind is required" };
+  if (!VALID_KIND.includes(payload.kind)) {
+    return { ok: false, error: `kind must be one of ${VALID_KIND.join(", ")}` };
   }
-  if (typeof payload.site !== "string" || payload.site.trim().length === 0) {
-    return { ok: false, error: "site is required" };
+  if (!VALID_SITE.includes(payload.site)) {
+    return { ok: false, error: `site must be one of ${VALID_SITE.join(", ")}` };
   }
   if (typeof payload.description !== "string" || payload.description.trim().length === 0) {
     return { ok: false, error: "description is required" };

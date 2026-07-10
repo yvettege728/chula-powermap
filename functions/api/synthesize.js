@@ -15,8 +15,13 @@ export async function onRequestPost(context) {
   if (!validation.ok) {
     return jsonResponse({ error: validation.error }, 400);
   }
-  if (body.followup_answer !== undefined && typeof body.followup_answer !== "string") {
-    return jsonResponse({ error: "followup_answer must be a string when present" }, 400);
+  if (body.followup_answer !== undefined) {
+    if (typeof body.followup_answer !== "string") {
+      return jsonResponse({ error: "followup_answer must be a string when present" }, 400);
+    }
+    if (body.followup_answer.length > 2000) {
+      return jsonResponse({ error: "followup_answer must be 2000 characters or fewer" }, 400);
+    }
   }
 
   const claudeRequest = buildSynthesizeRequest(body.answers, body.followup_answer);

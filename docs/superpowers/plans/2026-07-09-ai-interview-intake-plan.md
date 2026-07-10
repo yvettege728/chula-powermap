@@ -44,7 +44,7 @@ No code logic yet — this task is infrastructure and account setup, not TDD.
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test functions/_lib/ interview-state.test.js"
+    "test": "node --test"
   }
 }
 ```
