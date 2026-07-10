@@ -1,0 +1,9 @@
+{
+  "name": "chula-powermap",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test functions/_lib/ interview-state.test.js"
+  }
+}
