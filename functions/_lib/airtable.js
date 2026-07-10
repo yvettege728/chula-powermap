@@ -15,8 +15,8 @@ export function buildAirtableRecord(payload) {
 }
 
 export async function submitToAirtable(token, baseId, tableName, record) {
-  if (!token || !baseId) {
-    throw new Error("Airtable token and baseId must both be set");
+  if (!token || !baseId || !tableName) {
+    throw new Error("Airtable token, baseId, and tableName must all be set");
   }
   const res = await fetch(
     `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`,
@@ -32,5 +32,10 @@ export async function submitToAirtable(token, baseId, tableName, record) {
   if (!res.ok) {
     throw new Error(`Airtable API error: ${res.status} ${await res.text()}`);
   }
-  return res.json();
+  const resClone = res.clone();
+  try {
+    return await res.json();
+  } catch {
+    throw new Error(`Failed to parse Airtable response: ${await resClone.text()}`);
+  }
 }
