@@ -35,7 +35,7 @@ export function buildFollowupRequest(answers) {
 
   return {
     model: MODEL,
-    max_tokens: 200,
+    max_tokens: 200, // ~30-word response cap at ~6 tokens/word; 200 is a conservative buffer
     system: FOLLOWUP_SYSTEM,
     messages: [{ role: "user", content: userText }],
   };
@@ -61,6 +61,9 @@ export function buildSynthesizeRequest(answers, followupAnswer) {
 }
 
 export async function callClaude(apiKey, requestBody) {
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not set");
+  }
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -74,5 +77,8 @@ export async function callClaude(apiKey, requestBody) {
     throw new Error(`Claude API error: ${res.status} ${await res.text()}`);
   }
   const data = await res.json();
+  if (!data.content || !Array.isArray(data.content) || data.content.length === 0) {
+    throw new Error(`Claude API returned invalid response structure: ${JSON.stringify(data)}`);
+  }
   return data.content[0].text;
 }
