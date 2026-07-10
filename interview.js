@@ -5,6 +5,9 @@
 import { FIXED_QUESTIONS, nextStep } from "./interview-state.js";
 
 function initInterviewFlow() {
+  if (initInterviewFlow._initialized) return;
+  initInterviewFlow._initialized = true;
+
   const toggle = document.getElementById("intakeToggle");
   const interviewFlow = document.getElementById("interviewFlow");
   const submitForm = document.getElementById("submitForm");
@@ -70,7 +73,7 @@ function initInterviewFlow() {
           return fallbackToForm();
         }
       } else {
-        state = { step: nextStep(state) };
+        state = { step: nextStep(state), followupQuestion: null };
         renderStep();
         return;
       }
@@ -117,7 +120,9 @@ function initInterviewFlow() {
 
   function fallbackToForm() {
     statusEl.textContent = "";
-    document.getElementById("description").value = answers.join("\n\n");
+    const parts = [...answers];
+    if (followupAnswer) parts.push(followupAnswer);
+    document.getElementById("description").value = parts.join("\n\n");
     interviewFlow.hidden = true;
     submitForm.hidden = false;
     submitForm.dataset.source = "form";
