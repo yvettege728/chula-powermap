@@ -1,0 +1,6 @@
+# Tells Cloudflare's Workers/Pages static-asset deploy which files NOT to
+# upload as website assets. Same syntax as .gitignore.
+.git
+node_modules
+.DS_Store
+.wrangler
