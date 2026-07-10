@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chula Powermap · Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chula-powermap.css">
+<style>
+  /* Self-contained dark meta-page tokens (workaround — same as other meta pages) */
+  :root {
+    --bg-deep: #140e22;
+    --bg-deep-soft: #1a1330;
+    --bg-card: #221a38;
+    --bg-card-2: #2a2142;
+    --text-primary: #f3eee6;
+    --text-dim: #cfc6db;
+    --text-secondary: #9b8fb3;
+    --text-faint: #6f6585;
+    --line-mid: rgba(243, 238, 230, 0.14);
+    --line-soft: rgba(243, 238, 230, 0.07);
+    --jade: #5fb892;
+    --jade-bright: #7ed4ab;
+    --moss: #4da37a;
+    --moss-soft: rgba(95, 184, 146, 0.12);
+    --signal-yellow: #f2c94c;
+    --green: #5fb892;
+    --f-display: "Fraunces", Georgia, serif;
+    --f-body: "Inter Tight", system-ui, sans-serif;
+    --f-mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  body[data-lang="zh"] { --f-display: "Fraunces","Noto Serif SC",serif; --f-body: "Inter Tight","Noto Serif SC",sans-serif; }
+  body[data-lang="th"] { --f-display: "Fraunces","Noto Sans Thai",serif; --f-body: "Inter Tight","Noto Sans Thai",sans-serif; }
+  /* SVG glyph fallback per language */
+  body[data-lang="zh"] .arch-svg .node-sub, body[data-lang="zh"] .arch-svg .layer-label { font-family:"JetBrains Mono","Noto Serif SC",monospace; }
+  body[data-lang="th"] .arch-svg .node-sub, body[data-lang="th"] .arch-svg .layer-label { font-family:"JetBrains Mono","Noto Sans Thai",monospace; }
+  body[data-lang="zh"] .arch-svg .node-cn { font-family:"Noto Serif SC",serif; }
+  body[data-lang="th"] .arch-svg .node-cn { font-family:"Noto Sans Thai",sans-serif; }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--f-body); background: var(--bg-deep); color: var(--text-primary); line-height: 1.55; }
+  a { color: inherit; }
+  .wrap { width: min(1180px, calc(100vw - 40px)); margin: 0 auto; }
+
+  .meta-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; padding: 14px clamp(20px, 4vw, 40px);
+    border-bottom: 1px solid var(--line-mid);
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--text-secondary);
+    position: relative; z-index: 5;
+    background: rgba(20,14,34,0.72); backdrop-filter: blur(10px);
+  }
+  .meta-bar-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .meta-bar-left a { color: var(--text-secondary); text-decoration: none; }
+  .meta-bar-left a:hover { color: var(--jade); }
+  .meta-bar .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--signal-yellow); }
+  .meta-bar-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .meta-bar-coord { color: var(--text-faint); }
+
+  .lang-switch { display: inline-flex; gap: 4px; padding: 3px; border: 1px solid var(--line-mid); border-radius: 2px; }
+  .lang-btn { border: 0; background: transparent; cursor: pointer; padding: 5px 10px;
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-secondary); transition: background 160ms, color 160ms; }
+  .lang-btn:hover { color: var(--text-primary); }
+  .lang-btn.active { background: var(--signal-yellow); color: var(--bg-deep); font-weight: 600; }
+
+  .dither-canvas { position: fixed; inset: 0; z-index: 0; opacity: 0.5; pointer-events: none; }
+  .meta-bar, .page-hero, .arch-section { position: relative; z-index: 1; }
+
+  .page-hero { padding: clamp(44px, 6vw, 80px) 0 clamp(24px, 4vw, 44px); }
+  .eyebrow { display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-secondary); }
+  .eyebrow .num { color: var(--signal-yellow); }
+  .page-title { margin: 0; font-family: var(--f-display); font-weight: 360;
+    font-size: clamp(40px, 6vw, 86px); line-height: 0.96; letter-spacing: -0.03em; color: var(--text-primary); }
+  .page-title em { font-style: italic; color: var(--jade); }
+  .page-lead { max-width: 60ch; margin: 28px 0 0; font-family: var(--f-display); font-weight: 300;
+    font-size: clamp(18px, 2vw, 26px); line-height: 1.5; color: var(--text-dim); }
+  .page-lead strong { color: var(--text-primary); font-weight: 500; }
+  .page-lead em { font-style: italic; color: var(--jade-bright); }
+
+  .nav-back { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 40px; padding-top: 24px;
+    border-top: 1px solid var(--line-mid); font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+  .nav-back a { color: var(--text-secondary); text-decoration: none; }
+  .nav-back a:hover { color: var(--jade); }
+
+  .arch-section { padding: 24px 0 80px; }
+  .arch-frame { background: var(--bg-deep-soft); border: 1px solid var(--line-mid); padding: 32px; margin-bottom: 32px; position: relative; }
+  .arch-svg { width: 100%; height: auto; display: block; }
+
+  .arch-svg .node-rect { fill: var(--bg-deep); stroke: var(--text-secondary); stroke-width: 1.2; transition: all 200ms; }
+  .arch-svg .node-rect.hub { fill: var(--bg-card); stroke: var(--jade); stroke-width: 2; }
+  .arch-svg .node-rect.flagship { fill: var(--jade); stroke: var(--jade); }
+  .arch-svg .node-rect.support { fill: transparent; stroke: var(--text-faint); stroke-dasharray: 4 3; }
+  .arch-svg .node-rect.shared { fill: var(--moss-soft); stroke: var(--moss); }
+  .arch-svg .node-group { cursor: pointer; transition: opacity 200ms; }
+  .arch-svg .node-group:hover .node-rect { stroke: var(--jade); stroke-width: 2; fill: var(--bg-card-2); }
+  .arch-svg .node-group:hover .node-rect.flagship { fill: var(--jade-bright); }
+
+  .arch-svg .node-title { fill: var(--text-primary); font-family: "Inter Tight", sans-serif; font-size: 13px; font-weight: 600; pointer-events: none; }
+  .arch-svg .node-title.on-jade { fill: var(--bg-deep); }
+  .arch-svg .node-sub { fill: var(--text-secondary); font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; pointer-events: none; }
+  .arch-svg .node-sub.on-jade { fill: var(--bg-deep); opacity: 0.7; }
+  .arch-svg .node-cn { fill: var(--text-faint); font-family: "Noto Serif SC", serif; font-size: 11px; pointer-events: none; }
+  .arch-svg .node-cn.on-jade { fill: var(--bg-deep); opacity: 0.75; }
+
+  .arch-svg .edge { fill: none; stroke: var(--line-mid); stroke-width: 1; }
+  .arch-svg .edge.primary { stroke: var(--jade); stroke-width: 1.5; }
+  .arch-svg .edge.shared { stroke: var(--moss); stroke-width: 1; stroke-dasharray: 4 3; }
+  .arch-svg .edge.clink { stroke: var(--signal-yellow); stroke-width: 1; stroke-dasharray: 3 4; opacity: 0.55; }
+
+  .arch-svg .layer-label { fill: var(--text-secondary); font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600; }
+  .arch-svg .layer-line { stroke: var(--line-soft); stroke-width: 1; stroke-dasharray: 2 4; }
+
+  .legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line-mid); }
+  .legend-item { display: flex; align-items: center; gap: 12px; font-size: 12px; }
+  .legend-swatch { width: 28px; height: 20px; flex-shrink: 0; border: 1px solid var(--line-mid); }
+  .legend-swatch.hub { background: var(--bg-card); border-color: var(--jade); border-width: 2px; }
+  .legend-swatch.flagship { background: var(--jade); border-color: var(--jade); }
+  .legend-swatch.regular { background: var(--bg-deep); border-color: var(--text-secondary); }
+  .legend-swatch.shared { background: var(--moss-soft); border-color: var(--moss); }
+  .legend-swatch.support { background: transparent; border-color: var(--text-faint); border-style: dashed; }
+  .legend-label { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-primary); }
+  .legend-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.4; margin-top: 3px; }
+
+  .arch-explain { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border: 1px solid var(--line-mid); margin-top: 24px; }
+  .arch-explain-cell { padding: 28px 26px; border-right: 1px solid var(--line-mid); background: rgba(26, 20, 40, 0.45); }
+  .arch-explain-cell:last-child { border-right: none; }
+  .arch-explain-cell h3 { font-family: var(--f-display); font-weight: 400; font-size: 22px; line-height: 1.15; color: var(--text-primary); margin-bottom: 12px; letter-spacing: -0.01em; }
+  .arch-explain-cell h3 em { font-style: italic; color: var(--jade); }
+  .arch-explain-cell .num { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--jade); margin-bottom: 14px; }
+  .arch-explain-cell p { font-family: var(--f-body); font-size: 13.5px; line-height: 1.6; color: var(--text-dim); margin-bottom: 10px; }
+  .arch-explain-cell p em { font-style: italic; color: var(--moss); }
+  .arch-explain-cell code { font-family: var(--f-mono); font-size: 12px; color: var(--signal-yellow); }
+  .arch-explain-cell .files { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line-soft); font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--text-secondary); line-height: 1.7; }
+  .arch-explain-cell .files .comment { color: var(--text-faint); font-style: italic; }
+
+  .file-tree { background: rgba(26, 20, 40, 0.6); border: 1px solid var(--line-mid); padding: 28px 32px; font-family: var(--f-mono); font-size: 13px; line-height: 1.8; color: var(--text-primary); }
+  .file-tree .tree-label { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--jade); margin-bottom: 14px; display: block; }
+  .file-tree a { color: var(--text-primary); text-decoration: none; transition: color 200ms; }
+  .file-tree a:hover { color: var(--jade); }
+  .file-tree .comment { color: var(--text-faint); font-style: italic; }
+  .file-tree .flagship { color: var(--jade); font-weight: 700; }
+  .file-tree .shared { color: var(--moss); }
+
+  @media (max-width: 1024px) {
+    .legend { grid-template-columns: repeat(2, 1fr); }
+    .arch-explain { grid-template-columns: 1fr; }
+    .arch-explain-cell { border-right: none; border-bottom: 1px solid var(--line-mid); }
+    .arch-explain-cell:last-child { border-bottom: none; }
+  }
+  @media (max-width: 640px) { .legend { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body data-page="architecture" data-lang="en">
+
+<div class="meta-bar">
+  <div class="meta-bar-left">
+    <a href="index.html" data-i18n="meta.back">← Back to archive</a>
+    <span class="dot"></span>
+    <span data-i18n="meta.section">§ Architecture</span>
+  </div>
+  <div class="meta-bar-right">
+    <span class="meta-bar-coord" data-i18n="meta.metapage">Meta page</span>
+    <span class="meta-bar-coord">Bangkok · 2026.05</span>
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button class="lang-btn active" data-lang="en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中</button>
+      <button class="lang-btn" data-lang="th" onclick="setLang('th')">ไทย</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="ditherCanvas" class="dither-canvas"></canvas>
+
+<header class="page-hero">
+  <div class="wrap">
+    <div class="eyebrow"><span class="num">§ 03</span><span data-i18n="hero.eyebrow">How the archive is built</span></div>
+    <h1 class="page-title" data-i18n="hero.title">The <em>shape</em><br>of the archive.</h1>
+    <p class="page-lead" data-i18n="hero.lead">Seven pages, three layers, one shared design system. <strong>Click any node below to jump to it.</strong> The structure mirrors the analytical claim: <em>multiple reading positions onto a single pattern.</em></p>
+  </div>
+</header>
+
+<section class="arch-section">
+  <div class="wrap">
+
+    <!-- ========== MAIN SVG ARCHITECTURE DIAGRAM ========== -->
+    <div class="arch-frame">
+      <svg class="arch-svg" viewBox="0 0 1200 720" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+
+        <!-- Layer labels -->
+        <text class="layer-label" x="30" y="40" data-i18n="lyr.a">§ A · LANDING HUB</text>
+        <line class="layer-line" x1="30" y1="55" x2="1170" y2="55" />
+        <text class="layer-label" x="30" y="180" data-i18n="lyr.b">§ B · FIVE READING ENTRIES</text>
+        <line class="layer-line" x1="30" y1="195" x2="1170" y2="195" />
+        <text class="layer-label" x="30" y="460" data-i18n="lyr.c">§ C · SUPPORT &amp; META PAGES</text>
+        <line class="layer-line" x1="30" y1="475" x2="1170" y2="475" />
+        <text class="layer-label" x="30" y="600" data-i18n="lyr.d">§ D · SHARED DESIGN SYSTEM</text>
+        <line class="layer-line" x1="30" y1="615" x2="1170" y2="615" />
+
+        <!-- ===== Edges (drawn first, nodes overlay) ===== -->
+        <!-- Hub → 5 entries -->
+        <path class="edge primary" d="M600 130 Q 175 175 175 230"/>
+        <path class="edge primary" d="M600 130 Q 380 175 380 230"/>
+        <path class="edge primary" d="M600 130 Q 600 175 600 230"/>
+        <path class="edge primary" d="M600 130 Q 820 175 820 230"/>
+        <path class="edge primary" d="M600 130 Q 1025 175 1025 230"/>
+
+        <!-- Persona → flow chain -->
+        <path class="edge" d="M175 380 L175 410"/>
+
+        <!-- Contribute is reachable from EVERY reading entry (yellow link layer) -->
+        <path class="edge clink" d="M175 370 Q 175 450 645 516"/>
+        <path class="edge clink" d="M380 370 Q 380 455 660 512"/>
+        <path class="edge clink" d="M600 370 Q 600 460 700 505"/>
+        <path class="edge clink" d="M820 370 Q 820 455 845 505"/>
+        <path class="edge clink" d="M1025 370 Q 1025 455 905 512"/>
+
+        <!-- All pages depend on shared CSS/JS -->
+        <path class="edge shared" d="M600 130 L600 650"/>
+        <path class="edge shared" d="M175 380 L175 650"/>
+        <path class="edge shared" d="M380 380 L380 650"/>
+        <path class="edge shared" d="M820 380 L820 650"/>
+
+        <!-- ===== Layer A: HUB ===== -->
+        <g class="node-group" onclick="window.location.href='index.html'">
+          <rect class="node-rect hub" x="490" y="70" width="220" height="80" rx="2"/>
+          <text class="node-title" x="600" y="100" text-anchor="middle">index.html</text>
+          <text class="node-cn" x="600" y="120" text-anchor="middle" data-i18n="nd.index.d">Landing hub</text>
+          <text class="node-sub" x="600" y="138" text-anchor="middle" data-i18n="nd.index.s">§ A · entry point</text>
+        </g>
+
+        <!-- ===== Layer B: 5 ENTRIES ===== -->
+        <g class="node-group" onclick="window.location.href='persona.html'">
+          <rect class="node-rect flagship" x="80" y="230" width="190" height="140" rx="2"/>
+          <text class="node-title on-jade" x="175" y="260" text-anchor="middle">persona.html</text>
+          <text class="node-cn on-jade" x="175" y="278" text-anchor="middle" data-i18n="nd.persona.d">Role path · main</text>
+          <text class="node-sub on-jade" x="175" y="298" text-anchor="middle" data-i18n="nd.persona.s1">§ 01.1 · 4-step path</text>
+          <text class="node-sub on-jade" x="175" y="316" text-anchor="middle" style="font-size:8.5px" data-i18n="nd.persona.s2">picker → lanyard</text>
+          <text class="node-sub on-jade" x="175" y="330" text-anchor="middle" style="font-size:8.5px" data-i18n="nd.persona.s3">→ story → outcome</text>
+          <text class="node-sub on-jade" x="175" y="352" text-anchor="middle" style="font-size:9px;letter-spacing:0.1em" data-i18n="nd.persona.s4">[ FLAGSHIP ]</text>
+        </g>
+
+        <g class="node-group" onclick="window.location.href='map.html'">
+          <rect class="node-rect" x="295" y="230" width="170" height="140" rx="2"/>
+          <text class="node-title" x="380" y="260" text-anchor="middle">map.html</text>
+          <text class="node-cn" x="380" y="278" text-anchor="middle" data-i18n="nd.map.d">Physical map</text>
+          <text class="node-sub" x="380" y="298" text-anchor="middle" data-i18n="nd.map.s1">§ 01.2 · physical</text>
+          <text class="node-sub" x="380" y="316" text-anchor="middle" style="font-size:8.5px" data-i18n="nd.map.s2">9 sites · dossier</text>
+          <text class="node-sub" x="380" y="330" text-anchor="middle" style="font-size:8.5px" data-i18n="nd.map.s3">+ timeline scrubber</text>
+          <text class="node-sub" x="380" y="352" text-anchor="middle" style="font-size:9px" data-i18n="nd.map.s4">2007 → 2026</text>
+        </g>
+
+        <g class="node-group" onclick="window.location.href='network.html'">
+          <rect class="node-rect" x="495" y="230" width="210" height="140" rx="2"/>
+          <text class="node-title" x="600" y="260" text-anchor="middle">network.html</text>
+          <text class="node-cn" x="600" y="278" text-anchor="middle" data-i18n="nd.network.d">Power relations</text>
+          <text class="node-sub" x="600" y="298" text-anchor="middle" data-i18n="nd.network.s1">§ 01.3 · relational</text>
+          <text class="node-sub" x="600" y="316" text-anchor="middle" style="font-size:8.5px" data-i18n="nd.network.s2">14 actors · 8 instruments</text>
+          <text class="node-sub" x="600" y="330" text-anchor="middle" style="font-size:8.5px" data-i18n="nd.network.s3">6 events</text>
+          <text class="node-sub" x="600" y="352" text-anchor="middle" style="font-size:9px" data-i18n="nd.network.s4">filter chips · hover analysis</text>
+        </g>
+
+        <g class="node-group" onclick="window.location.href='cases.html'">
+          <rect class="node-rect" x="735" y="230" width="170" height="140" rx="2"/>
+          <text class="node-title" x="820" y="260" text-anchor="middle">cases.html</text>
+          <text class="node-cn" x="820" y="278" text-anchor="middle" data-i18n="nd.cases.d">Conflict readings</text>
+          <text class="node-sub" x="820" y="298" text-anchor="middle" data-i18n="nd.cases.s1">§ 01.4 · conflict</text>
+          <text class="node-sub" x="820" y="316" text-anchor="middle" style="font-size:8.5px" data-i18n="nd.cases.s2">4 site clusters</text>
+          <text class="node-sub" x="820" y="330" text-anchor="middle" style="font-size:8.5px" data-i18n="nd.cases.s3">two-side analysis</text>
+          <text class="node-sub" x="820" y="352" text-anchor="middle" style="font-size:9px" data-i18n="nd.cases.s4">+ mechanism reveal</text>
+        </g>
+
+        <g class="node-group" onclick="window.location.href='gallery.html'">
+          <rect class="node-rect support" x="935" y="230" width="180" height="140" rx="2"/>
+          <text class="node-title" x="1025" y="260" text-anchor="middle">gallery.html</text>
+          <text class="node-cn" x="1025" y="278" text-anchor="middle" data-i18n="nd.gallery.d">Image archive</text>
+          <text class="node-sub" x="1025" y="298" text-anchor="middle" data-i18n="nd.gallery.s1">§ 01.5 · visual</text>
+          <text class="node-sub" x="1025" y="316" text-anchor="middle" style="font-size:8.5px" data-i18n="nd.gallery.s2">documents · photos</text>
+          <text class="node-sub" x="1025" y="330" text-anchor="middle" style="font-size:8.5px" data-i18n="nd.gallery.s3">drawings</text>
+          <text class="node-sub" x="1025" y="352" text-anchor="middle" style="font-size:9px" data-i18n="nd.gallery.s4">[ COMING SOON ]</text>
+        </g>
+
+        <!-- ===== Layer C: SUPPORT ===== -->
+        <g class="node-group" style="cursor:default">
+          <rect class="node-rect support" x="280" y="505" width="200" height="72" rx="2" style="stroke:var(--jade)" />
+          <text class="node-title" x="380" y="535" text-anchor="middle">architecture.html</text>
+          <text class="node-sub" x="380" y="554" text-anchor="middle" data-i18n="nd.arch.s">§ 03 · this page</text>
+        </g>
+
+        <!-- Contribute (MERGED: guidelines + intake form, trilingual) -->
+        <g class="node-group" onclick="window.location.href='contribute.html'">
+          <rect class="node-rect support" x="640" y="505" width="280" height="72" rx="2" style="stroke:var(--jade)"/>
+          <text class="node-title" x="780" y="530" text-anchor="middle">contribute.html</text>
+          <text class="node-sub" x="780" y="548" text-anchor="middle" data-i18n="nd.contribute.s1">§ 02 · guidelines + intake form</text>
+          <text class="node-sub" x="780" y="564" text-anchor="middle" style="font-size:8px" data-i18n="nd.contribute.s2">slogan · §02.1–02.4 · form · EN 中 ไทย</text>
+        </g>
+
+        <!-- ===== Layer D: SHARED DESIGN SYSTEM ===== -->
+        <g class="node-group" style="cursor:default">
+          <rect class="node-rect shared" x="200" y="650" width="180" height="50" rx="2"/>
+          <text class="node-title" x="290" y="675" text-anchor="middle">chula-powermap.css</text>
+          <text class="node-sub" x="290" y="690" text-anchor="middle" data-i18n="nd.css.s">design tokens · all pages</text>
+        </g>
+        <g class="node-group" style="cursor:default">
+          <rect class="node-rect shared" x="410" y="650" width="120" height="50" rx="2"/>
+          <text class="node-title" x="470" y="675" text-anchor="middle">dither.js</text>
+          <text class="node-sub" x="470" y="690" text-anchor="middle" data-i18n="nd.dither.s">bg canvas</text>
+        </g>
+        <g class="node-group" style="cursor:default">
+          <rect class="node-rect shared" x="555" y="650" width="120" height="50" rx="2"/>
+          <text class="node-title" x="615" y="675" text-anchor="middle">portrait.js</text>
+          <text class="node-sub" x="615" y="690" text-anchor="middle" data-i18n="nd.portrait.s">pixel faces</text>
+        </g>
+        <g class="node-group" style="cursor:default">
+          <rect class="node-rect shared" x="700" y="650" width="120" height="50" rx="2"/>
+          <text class="node-title" x="760" y="675" text-anchor="middle">index.js</text>
+          <text class="node-sub" x="760" y="690" text-anchor="middle" data-i18n="nd.indexjs.s">landing only</text>
+        </g>
+        <g class="node-group" style="cursor:default">
+          <rect class="node-rect shared" x="845" y="650" width="120" height="50" rx="2"/>
+          <text class="node-title" x="905" y="675" text-anchor="middle">persona.js</text>
+          <text class="node-sub" x="905" y="690" text-anchor="middle" data-i18n="nd.personajs.s">picker → outcome</text>
+        </g>
+
+      </svg>
+
+      <!-- Legend -->
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-swatch hub"></div>
+          <div><div class="legend-label" data-i18n="lg.hub.t">Hub</div><div class="legend-desc" data-i18n="lg.hub.d">Single entry to the archive</div></div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch flagship"></div>
+          <div><div class="legend-label" data-i18n="lg.flag.t">Flagship</div><div class="legend-desc" data-i18n="lg.flag.d">Main reading entry (persona path)</div></div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch regular"></div>
+          <div><div class="legend-label" data-i18n="lg.read.t">Reading page</div><div class="legend-desc" data-i18n="lg.read.d">One of four parallel ways in</div></div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch support"></div>
+          <div><div class="legend-label" data-i18n="lg.sup.t">Support page</div><div class="legend-desc" data-i18n="lg.sup.d">Gallery (WIP), contribute (merged), meta</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== EXPLANATION GRID ========== -->
+    <div class="arch-explain">
+
+      <div class="arch-explain-cell">
+        <div class="num" data-i18n="ex.a.num">§ Layer A · Hub</div>
+        <h3 data-i18n="ex.a.h3">One <em>door</em>.</h3>
+        <p data-i18n="ex.a.p1"><code>index.html</code> is the only landing page. It states the claim — <em>shrine still standing, 122M baht lawsuit active</em> — and offers five parallel ways in.</p>
+        <p data-i18n="ex.a.p2">The hero combines a full-bleed <em>dither</em> background with a four-photo collage of the key sites. No video, no scrolling animation — the visual weight is in typography and the corridor itself.</p>
+        <div class="files">index.html<br>index.js<br>chula-powermap.css<br>dither.js · portrait.js</div>
+      </div>
+
+      <div class="arch-explain-cell">
+        <div class="num" data-i18n="ex.b.num">§ Layer B · Five reading entries</div>
+        <h3 data-i18n="ex.b.h3">Five <em>positions</em>, one truth.</h3>
+        <p data-i18n="ex.b.p1">The archive treats reading position as analytically meaningful. Persona makes you <em>somebody</em>; Map gives you addresses; Network gives you relations; Cases gives you conflict pairs; Gallery (when ready) gives you the visual record.</p>
+        <p data-i18n="ex.b.p2">Persona is the flagship — it forces a 4-step decision walk that ends in one of four real-history mechanisms (M02, M03, M04, M05).</p>
+        <div class="files">persona.html / persona.js<br>map.html<br>network.html<br>cases.html<br>gallery.html</div>
+      </div>
+
+      <div class="arch-explain-cell">
+        <div class="num" data-i18n="ex.c.num">§ Layer C/D · Support &amp; shared</div>
+        <h3 data-i18n="ex.c.h3">The <em>infrastructure</em>.</h3>
+        <p data-i18n="ex.c.p1">One shared stylesheet (<em>chula-powermap.css</em>) holds every design token — colors, type scale, spacing. Three shared JS files handle the dither background, pixel portraits, and landing interactions. Each reading page adds only its own page-specific styles inline.</p>
+        <p data-i18n="ex.c.p2"><em>contribute.html</em> now merges the editorial guidelines and the intake form on a single page — slogan opener, §02.1–02.4 on the left, the submission form on the right, with an <em>EN · 中 · ไทย</em> language toggle. It is reachable from every reading entry. <em>This page</em> is the meta-architecture for reviewers.</p>
+        <div class="files">contribute.html <span class="comment" data-i18n="ex.c.f1">(guidelines + form)</span><br>architecture.html<br>chula-powermap.css<br>dither.js · portrait.js · *.js</div>
+      </div>
+
+    </div>
+
+    <!-- ========== FILE TREE ========== -->
+    <div class="file-tree" style="margin-top: 24px;">
+      <span class="tree-label" data-i18n="ft.label">§ File tree · all 13 files</span>
+      chula-powermap/<br>
+      ├── <a href="index.html"><span class="flagship">index.html</span></a> <span class="comment" data-i18n="ft.index">// landing hub · five-entry SpotlightCard grid</span><br>
+      ├── <a href="persona.html"><span class="flagship">persona.html</span></a> <span class="comment" data-i18n="ft.persona">// picker → lanyard → story → outcome</span><br>
+      ├── <a href="map.html">map.html</a> <span class="comment" data-i18n="ft.map">// 9 sites + timeline scrubber (2007-2026)</span><br>
+      ├── <a href="network.html">network.html</a> <span class="comment" data-i18n="ft.network">// 14 actors · 8 instruments · 6 events</span><br>
+      ├── <a href="cases.html">cases.html</a> <span class="comment" data-i18n="ft.cases">// 4 conflict clusters, expandable</span><br>
+      ├── <a href="gallery.html">gallery.html</a> <span class="comment" data-i18n="ft.gallery">// coming soon placeholder</span><br>
+      ├── <a href="contribute.html">contribute.html</a> <span class="comment" data-i18n="ft.contribute">// MERGED: guidelines + intake form · EN 中 ไทย</span><br>
+      ├── architecture.html <span class="comment" data-i18n="ft.arch">// this page</span><br>
+      │<br>
+      ├── <span class="shared">chula-powermap.css</span> <span class="comment" data-i18n="ft.css">// design tokens · shared by all pages</span><br>
+      ├── <span class="shared">dither.js</span> <span class="comment" data-i18n="ft.dither">// purple Bayer dither background</span><br>
+      ├── <span class="shared">portrait.js</span> <span class="comment" data-i18n="ft.portrait">// pixel face drawing (96 unique seeds)</span><br>
+      ├── <span class="shared">index.js</span> <span class="comment" data-i18n="ft.indexjs">// landing-only spotlight + portrait strip</span><br>
+      └── <span class="shared">persona.js</span> <span class="comment" data-i18n="ft.personajs">// picker · 3D lanyard · typewriter · story tree · outcomes</span>
+    </div>
+
+    <div class="nav-back">
+      <a href="index.html" data-i18n="meta.back">← Back to archive</a>
+      <a href="persona.html" data-i18n="nav.persona">→ Start with the persona path</a>
+      <a href="contribute.html" data-i18n="nav.contribute">→ Contribute to the archive</a>
+    </div>
+
+  </div>
+</section>
+
+<script src="dither.js"></script>
+<script>
+/* ============================================================
+   i18n dictionary — EN / 中文 / ไทย
+   Thai should be reviewed by a native speaker before publication.
+   Filenames, § codes, numbers and identifiers stay untranslated.
+   ============================================================ */
+const I18N = {
+  en: {
+    "meta.back": "← Back to archive",
+    "meta.section": "§ Architecture",
+    "meta.metapage": "Meta page",
+    "hero.eyebrow": "How the archive is built",
+    "hero.title": "The <em>shape</em><br>of the archive.",
+    "hero.lead": "Seven pages, three layers, one shared design system. <strong>Click any node below to jump to it.</strong> The structure mirrors the analytical claim: <em>multiple reading positions onto a single pattern.</em>",
+    "lyr.a": "§ A · LANDING HUB",
+    "lyr.b": "§ B · FIVE READING ENTRIES",
+    "lyr.c": "§ C · SUPPORT & META PAGES",
+    "lyr.d": "§ D · SHARED DESIGN SYSTEM",
+    "nd.index.d": "Landing hub", "nd.index.s": "§ A · entry point",
+    "nd.persona.d": "Role path · main", "nd.persona.s1": "§ 01.1 · 4-step path", "nd.persona.s2": "picker → lanyard", "nd.persona.s3": "→ story → outcome", "nd.persona.s4": "[ FLAGSHIP ]",
+    "nd.map.d": "Physical map", "nd.map.s1": "§ 01.2 · physical", "nd.map.s2": "9 sites · dossier", "nd.map.s3": "+ timeline scrubber", "nd.map.s4": "2007 → 2026",
+    "nd.network.d": "Power relations", "nd.network.s1": "§ 01.3 · relational", "nd.network.s2": "14 actors · 8 instruments", "nd.network.s3": "6 events", "nd.network.s4": "filter chips · hover analysis",
+    "nd.cases.d": "Conflict readings", "nd.cases.s1": "§ 01.4 · conflict", "nd.cases.s2": "4 site clusters", "nd.cases.s3": "two-side analysis", "nd.cases.s4": "+ mechanism reveal",
+    "nd.gallery.d": "Image archive", "nd.gallery.s1": "§ 01.5 · visual", "nd.gallery.s2": "documents · photos", "nd.gallery.s3": "drawings", "nd.gallery.s4": "[ COMING SOON ]",
+    "nd.arch.s": "§ 03 · this page",
+    "nd.contribute.s1": "§ 02 · guidelines + intake form", "nd.contribute.s2": "slogan · §02.1–02.4 · form · EN 中 ไทย",
+    "nd.css.s": "design tokens · all pages", "nd.dither.s": "bg canvas", "nd.portrait.s": "pixel faces", "nd.indexjs.s": "landing only", "nd.personajs.s": "picker → outcome",
+    "lg.hub.t": "Hub", "lg.hub.d": "Single entry to the archive",
+    "lg.flag.t": "Flagship", "lg.flag.d": "Main reading entry (persona path)",
+    "lg.read.t": "Reading page", "lg.read.d": "One of four parallel ways in",
+    "lg.sup.t": "Support page", "lg.sup.d": "Gallery (WIP), contribute (merged), meta",
+    "ex.a.num": "§ Layer A · Hub", "ex.a.h3": "One <em>door</em>.",
+    "ex.a.p1": "<code>index.html</code> is the only landing page. It states the claim — <em>shrine still standing, 122M baht lawsuit active</em> — and offers five parallel ways in.",
+    "ex.a.p2": "The hero combines a full-bleed <em>dither</em> background with a four-photo collage of the key sites. No video, no scrolling animation — the visual weight is in typography and the corridor itself.",
+    "ex.b.num": "§ Layer B · Five reading entries", "ex.b.h3": "Five <em>positions</em>, one truth.",
+    "ex.b.p1": "The archive treats reading position as analytically meaningful. Persona makes you <em>somebody</em>; Map gives you addresses; Network gives you relations; Cases gives you conflict pairs; Gallery (when ready) gives you the visual record.",
+    "ex.b.p2": "Persona is the flagship — it forces a 4-step decision walk that ends in one of four real-history mechanisms (M02, M03, M04, M05).",
+    "ex.c.num": "§ Layer C/D · Support & shared", "ex.c.h3": "The <em>infrastructure</em>.",
+    "ex.c.p1": "One shared stylesheet (<em>chula-powermap.css</em>) holds every design token — colors, type scale, spacing. Three shared JS files handle the dither background, pixel portraits, and landing interactions. Each reading page adds only its own page-specific styles inline.",
+    "ex.c.p2": "<em>contribute.html</em> now merges the editorial guidelines and the intake form on a single page — slogan opener, §02.1–02.4 on the left, the submission form on the right, with an <em>EN · 中 · ไทย</em> language toggle. It is reachable from every reading entry. <em>This page</em> is the meta-architecture for reviewers.",
+    "ex.c.f1": "(guidelines + form)",
+    "ft.label": "§ File tree · all 13 files",
+    "ft.index": "// landing hub · five-entry SpotlightCard grid",
+    "ft.persona": "// picker → lanyard → story → outcome",
+    "ft.map": "// 9 sites + timeline scrubber (2007-2026)",
+    "ft.network": "// 14 actors · 8 instruments · 6 events",
+    "ft.cases": "// 4 conflict clusters, expandable",
+    "ft.gallery": "// coming soon placeholder",
+    "ft.contribute": "// MERGED: guidelines + intake form · EN 中 ไทย",
+    "ft.arch": "// this page",
+    "ft.css": "// design tokens · shared by all pages",
+    "ft.dither": "// purple Bayer dither background",
+    "ft.portrait": "// pixel face drawing (96 unique seeds)",
+    "ft.indexjs": "// landing-only spotlight + portrait strip",
+    "ft.personajs": "// picker · 3D lanyard · typewriter · story tree · outcomes",
+    "nav.persona": "→ Start with the persona path",
+    "nav.contribute": "→ Contribute to the archive"
+  },
+
+  zh: {
+    "meta.back": "← 返回档案",
+    "meta.section": "§ 架构",
+    "meta.metapage": "元页面",
+    "hero.eyebrow": "档案如何构建",
+    "hero.title": "档案的<em>形状</em>。",
+    "hero.lead": "七个页面，三个层级，一套共享设计系统。<strong>点击下方任意节点即可跳转。</strong>这一结构呼应核心论点：<em>对同一模式的多重阅读位置。</em>",
+    "lyr.a": "§ A · 着陆枢纽",
+    "lyr.b": "§ B · 五个阅读入口",
+    "lyr.c": "§ C · 支持与元页面",
+    "lyr.d": "§ D · 共享设计系统",
+    "nd.index.d": "着陆枢纽", "nd.index.s": "§ A · 入口",
+    "nd.persona.d": "角色路径 · 主入口", "nd.persona.s1": "§ 01.1 · 四步路径", "nd.persona.s2": "选择 → 挂牌", "nd.persona.s3": "→ 故事 → 结局", "nd.persona.s4": "[ 旗舰 ]",
+    "nd.map.d": "物理地图", "nd.map.s1": "§ 01.2 · 物理", "nd.map.s2": "9 处场地 · 档案", "nd.map.s3": "+ 时间轴", "nd.map.s4": "2007 → 2026",
+    "nd.network.d": "权力关系", "nd.network.s1": "§ 01.3 · 关系", "nd.network.s2": "14 行动者 · 8 工具", "nd.network.s3": "6 个事件", "nd.network.s4": "筛选 · 悬停分析",
+    "nd.cases.d": "矛盾解读", "nd.cases.s1": "§ 01.4 · 矛盾", "nd.cases.s2": "4 个场地群", "nd.cases.s3": "双方分析", "nd.cases.s4": "+ 机制揭示",
+    "nd.gallery.d": "影像档案", "nd.gallery.s1": "§ 01.5 · 影像", "nd.gallery.s2": "文件 · 照片", "nd.gallery.s3": "图纸", "nd.gallery.s4": "[ 即将推出 ]",
+    "nd.arch.s": "§ 03 · 本页",
+    "nd.contribute.s1": "§ 02 · 指南 + 投稿表单", "nd.contribute.s2": "口号 · §02.1–02.4 · 表单 · EN 中 ไทย",
+    "nd.css.s": "设计令牌 · 所有页面", "nd.dither.s": "背景画布", "nd.portrait.s": "像素头像", "nd.indexjs.s": "仅着陆页", "nd.personajs.s": "选择 → 结局",
+    "lg.hub.t": "枢纽", "lg.hub.d": "档案的唯一入口",
+    "lg.flag.t": "旗舰", "lg.flag.d": "主要阅读入口（角色路径）",
+    "lg.read.t": "阅读页", "lg.read.d": "四条并行入口之一",
+    "lg.sup.t": "支持页", "lg.sup.d": "影像（开发中）、参与（已合并）、元页面",
+    "ex.a.num": "§ A 层 · 枢纽", "ex.a.h3": "一扇<em>门</em>。",
+    "ex.a.p1": "<code>index.html</code> 是唯一的着陆页。它陈述核心论点——<em>神庙仍在，1.22 亿泰铢诉讼仍在进行</em>——并提供五条并行入口。",
+    "ex.a.p2": "首屏将全幅 <em>dither</em> 背景与四张关键场地照片拼贴结合。没有视频，没有滚动动画——视觉重量落在排版与街区本身。",
+    "ex.b.num": "§ B 层 · 五个阅读入口", "ex.b.h3": "五种<em>位置</em>，一个事实。",
+    "ex.b.p1": "档案将“阅读位置”视为具有分析意义。角色让你成为<em>某个人</em>；地图给你地址；关系网给你关系；矛盾给你冲突的两方；影像（就绪后）给你视觉记录。",
+    "ex.b.p2": "角色路径是旗舰——它强制一段四步决策之旅，终点是四个真实历史机制之一（M02、M03、M04、M05）。",
+    "ex.c.num": "§ C/D 层 · 支持与共享", "ex.c.h3": "<em>基础设施</em>。",
+    "ex.c.p1": "一份共享样式表（<em>chula-powermap.css</em>）保存所有设计令牌——颜色、字号比例、间距。三个共享 JS 文件负责 dither 背景、像素头像与着陆页交互。每个阅读页仅内联补充自己专属的样式。",
+    "ex.c.p2": "<em>contribute.html</em> 现已将编辑指南与投稿表单合并到同一页面——口号开篇，左侧为 §02.1–02.4，右侧为投稿表单，并带 <em>EN · 中 · ไทย</em> 语言切换。它可从每一个阅读入口抵达。<em>本页</em>是供评审者查看的元架构。",
+    "ex.c.f1": "（指南 + 表单）",
+    "ft.label": "§ 文件树 · 全部 13 个文件",
+    "ft.index": "// 着陆枢纽 · 五入口 SpotlightCard 网格",
+    "ft.persona": "// 选择 → 挂牌 → 故事 → 结局",
+    "ft.map": "// 9 处场地 + 时间轴（2007-2026）",
+    "ft.network": "// 14 行动者 · 8 工具 · 6 事件",
+    "ft.cases": "// 4 个矛盾群，可展开",
+    "ft.gallery": "// 即将推出占位",
+    "ft.contribute": "// 已合并：指南 + 投稿表单 · EN 中 ไทย",
+    "ft.arch": "// 本页",
+    "ft.css": "// 设计令牌 · 所有页面共享",
+    "ft.dither": "// 紫色 Bayer dither 背景",
+    "ft.portrait": "// 像素头像绘制（96 个独特种子）",
+    "ft.indexjs": "// 仅着陆页 spotlight + 头像条",
+    "ft.personajs": "// 选择 · 3D 挂牌 · 打字机 · 故事树 · 结局",
+    "nav.persona": "→ 从角色路径开始",
+    "nav.contribute": "→ 参与这个档案"
+  },
+
+  th: {
+    "meta.back": "← กลับสู่คลัง",
+    "meta.section": "§ สถาปัตยกรรม",
+    "meta.metapage": "หน้าเมตา",
+    "hero.eyebrow": "คลังนี้สร้างขึ้นอย่างไร",
+    "hero.title": "<em>รูปร่าง</em><br>ของคลังจดหมายเหตุ",
+    "hero.lead": "เจ็ดหน้า สามชั้น หนึ่งระบบดีไซน์ร่วม <strong>คลิกที่โหนดใดด้านล่างเพื่อไปยังหน้านั้น</strong> โครงสร้างนี้สะท้อนข้อเสนอเชิงวิเคราะห์: <em>หลายตำแหน่งการอ่านต่อรูปแบบเดียว</em>",
+    "lyr.a": "§ A · หน้าแรก",
+    "lyr.b": "§ B · ห้าทางเข้าอ่าน",
+    "lyr.c": "§ C · หน้าสนับสนุน & เมตา",
+    "lyr.d": "§ D · ระบบดีไซน์ร่วม",
+    "nd.index.d": "หน้าแรก · ศูนย์กลาง", "nd.index.s": "§ A · ทางเข้า",
+    "nd.persona.d": "เส้นทางตัวละคร · หลัก", "nd.persona.s1": "§ 01.1 · เส้นทาง 4 ขั้น", "nd.persona.s2": "เลือก → ป้ายคล้องคอ", "nd.persona.s3": "→ เรื่องราว → ผลลัพธ์", "nd.persona.s4": "[ หน้าหลัก ]",
+    "nd.map.d": "แผนที่กายภาพ", "nd.map.s1": "§ 01.2 · กายภาพ", "nd.map.s2": "9 พื้นที่ · แฟ้มข้อมูล", "nd.map.s3": "+ ไทม์ไลน์", "nd.map.s4": "2007 → 2026",
+    "nd.network.d": "ความสัมพันธ์เชิงอำนาจ", "nd.network.s1": "§ 01.3 · ความสัมพันธ์", "nd.network.s2": "14 ผู้กระทำ · 8 เครื่องมือ", "nd.network.s3": "6 เหตุการณ์", "nd.network.s4": "ตัวกรอง · วิเคราะห์เมื่อชี้",
+    "nd.cases.d": "การอ่านความขัดแย้ง", "nd.cases.s1": "§ 01.4 · ความขัดแย้ง", "nd.cases.s2": "4 กลุ่มพื้นที่", "nd.cases.s3": "วิเคราะห์สองฝ่าย", "nd.cases.s4": "+ เผยกลไก",
+    "nd.gallery.d": "คลังภาพ", "nd.gallery.s1": "§ 01.5 · ภาพ", "nd.gallery.s2": "เอกสาร · ภาพถ่าย", "nd.gallery.s3": "แบบวาด", "nd.gallery.s4": "[ เร็ว ๆ นี้ ]",
+    "nd.arch.s": "§ 03 · หน้านี้",
+    "nd.contribute.s1": "§ 02 · แนวทาง + แบบฟอร์ม", "nd.contribute.s2": "สโลแกน · §02.1–02.4 · ฟอร์ม · EN 中 ไทย",
+    "nd.css.s": "ดีไซน์โทเคน · ทุกหน้า", "nd.dither.s": "พื้นหลัง canvas", "nd.portrait.s": "ใบหน้าพิกเซล", "nd.indexjs.s": "เฉพาะหน้าแรก", "nd.personajs.s": "เลือก → ผลลัพธ์",
+    "lg.hub.t": "ศูนย์กลาง", "lg.hub.d": "ทางเข้าเดียวสู่คลัง",
+    "lg.flag.t": "หน้าหลัก", "lg.flag.d": "ทางเข้าอ่านหลัก (เส้นทางตัวละคร)",
+    "lg.read.t": "หน้าอ่าน", "lg.read.d": "หนึ่งในสี่ทางเข้าคู่ขนาน",
+    "lg.sup.t": "หน้าสนับสนุน", "lg.sup.d": "แกลเลอรี (กำลังทำ), ร่วมสมทบ (รวมแล้ว), เมตา",
+    "ex.a.num": "§ ชั้น A · ศูนย์กลาง", "ex.a.h3": "ประตู<em>เดียว</em>",
+    "ex.a.p1": "<code>index.html</code> เป็นหน้าแรกเพียงหน้าเดียว ระบุข้อเสนอ — <em>ศาลเจ้ายังคงอยู่ คดี 122 ล้านบาทยังดำเนิน</em> — และเปิดทางเข้าคู่ขนานห้าทาง",
+    "ex.a.p2": "ส่วนหัวผสานพื้นหลัง <em>dither</em> เต็มจอกับภาพคอลลาจสี่รูปของพื้นที่สำคัญ ไม่มีวิดีโอ ไม่มีอนิเมชันเลื่อน — น้ำหนักทางสายตาอยู่ที่ตัวอักษรและย่านนั้นเอง",
+    "ex.b.num": "§ ชั้น B · ห้าทางเข้าอ่าน", "ex.b.h3": "ห้า<em>ตำแหน่ง</em> หนึ่งความจริง",
+    "ex.b.p1": "คลังนี้ถือว่าตำแหน่งการอ่านมีความหมายเชิงวิเคราะห์ ตัวละครทำให้คุณเป็น<em>ใครบางคน</em>; แผนที่ให้ที่อยู่; เครือข่ายให้ความสัมพันธ์; กรณีให้คู่ความขัดแย้ง; แกลเลอรี (เมื่อพร้อม) ให้บันทึกภาพ",
+    "ex.b.p2": "เส้นทางตัวละครคือหน้าหลัก — บังคับให้เดินผ่านการตัดสินใจ 4 ขั้น ที่จบลงด้วยหนึ่งในสี่กลไกจากประวัติศาสตร์จริง (M02, M03, M04, M05)",
+    "ex.c.num": "§ ชั้น C/D · สนับสนุน & ร่วม", "ex.c.h3": "<em>โครงสร้างพื้นฐาน</em>",
+    "ex.c.p1": "สไตล์ชีตร่วมหนึ่งไฟล์ (<em>chula-powermap.css</em>) เก็บดีไซน์โทเคนทั้งหมด — สี ขนาดตัวอักษร ระยะห่าง ไฟล์ JS ร่วมสามไฟล์จัดการพื้นหลัง dither ภาพพิกเซล และการโต้ตอบหน้าแรก แต่ละหน้าอ่านเพิ่มเฉพาะสไตล์ของหน้าตนเองแบบ inline",
+    "ex.c.p2": "<em>contribute.html</em> ขณะนี้รวมแนวทางบรรณาธิการและแบบฟอร์มไว้ในหน้าเดียว — เปิดด้วยสโลแกน, §02.1–02.4 อยู่ซ้าย, แบบฟอร์มอยู่ขวา พร้อมสลับภาษา <em>EN · 中 · ไทย</em> เข้าถึงได้จากทุกทางเข้าอ่าน <em>หน้านี้</em> คือเมตาสถาปัตยกรรมสำหรับผู้ตรวจ",
+    "ex.c.f1": "(แนวทาง + ฟอร์ม)",
+    "ft.label": "§ ผังไฟล์ · ทั้งหมด 13 ไฟล์",
+    "ft.index": "// หน้าแรก · กริด SpotlightCard ห้าทางเข้า",
+    "ft.persona": "// เลือก → ป้ายคล้องคอ → เรื่องราว → ผลลัพธ์",
+    "ft.map": "// 9 พื้นที่ + ไทม์ไลน์ (2007-2026)",
+    "ft.network": "// 14 ผู้กระทำ · 8 เครื่องมือ · 6 เหตุการณ์",
+    "ft.cases": "// 4 กลุ่มความขัดแย้ง ขยายได้",
+    "ft.gallery": "// ตัวอย่างเร็ว ๆ นี้",
+    "ft.contribute": "// รวมแล้ว: แนวทาง + แบบฟอร์ม · EN 中 ไทย",
+    "ft.arch": "// หน้านี้",
+    "ft.css": "// ดีไซน์โทเคน · ใช้ร่วมทุกหน้า",
+    "ft.dither": "// พื้นหลัง Bayer dither สีม่วง",
+    "ft.portrait": "// วาดใบหน้าพิกเซล (96 ซีดเฉพาะ)",
+    "ft.indexjs": "// spotlight เฉพาะหน้าแรก + แถบภาพ",
+    "ft.personajs": "// เลือก · ป้าย 3D · พิมพ์ดีด · ต้นไม้เรื่อง · ผลลัพธ์",
+    "nav.persona": "→ เริ่มที่เส้นทางตัวละคร",
+    "nav.contribute": "→ ร่วมสมทบกับคลัง"
+  }
+};
+
+function setLang(lang) {
+  if (!I18N[lang]) lang = "en";
+  const dict = I18N[lang];
+  document.body.dataset.lang = lang;
+  document.documentElement.lang = lang === "zh" ? "zh-Hans" : lang === "th" ? "th" : "en";
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const k = el.getAttribute("data-i18n");
+    if (dict[k] == null) return;
+    if (el instanceof SVGElement) el.textContent = dict[k];   // SVG text: plain
+    else el.innerHTML = dict[k];                               // HTML: allow <em>/<strong>/<code>
+  });
+  document.querySelectorAll(".lang-btn").forEach(b => b.classList.toggle("active", b.dataset.lang === lang));
+}
+
+setLang("en");
+</script>
+</body>
+</html>

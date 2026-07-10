@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chula Powermap · The Conflicts · understanding through conflict</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chula-powermap.css">
+<style>
+  /* chrome (meta-bar, eyebrow, page-title, page-lead, nav-back, dither) comes from chula-powermap.css */
+  .page-hero { padding-bottom: 34px; }
+  .conflicts-section { padding: 22px 0 90px; position: relative; z-index: 2; }
+
+  .cluster { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--line-mid); margin-bottom: 18px; overflow: hidden; transition: border-color 200ms; }
+  .cluster.flagship { border-color: var(--jade); }
+  .cluster-header { padding: 26px 30px; display: grid; grid-template-columns: auto 1fr auto; gap: 26px; align-items: center; cursor: pointer; transition: background 200ms; }
+  .cluster-header:hover { background: rgba(95,184,146,0.06); }
+  .cluster-num { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.18em; font-weight: 600; color: var(--jade); white-space: nowrap; }
+  .cluster-title { font-family: var(--f-display); font-weight: 400; font-size: clamp(23px, 2.8vw, 32px); line-height: 1.12; color: var(--text-primary); letter-spacing: -0.015em; }
+  .cluster-title em { font-style: italic; color: var(--jade); }
+  .cluster-subtitle { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); margin-top: 8px; }
+  .cluster-toggle { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; background: transparent; color: var(--text-secondary); border: 1px solid var(--line-mid); padding: 12px 16px; cursor: pointer; transition: all 200ms; white-space: nowrap; }
+  .cluster:hover .cluster-toggle { color: var(--jade); border-color: var(--jade); }
+  .cluster.open .cluster-toggle { background: var(--jade); color: var(--bg-deep); border-color: var(--jade); }
+  .cluster-body { max-height: 0; overflow: hidden; transition: max-height 480ms cubic-bezier(0.2,0.8,0.2,1); }
+  .cluster.open .cluster-body { max-height: 2000px; }
+  .cluster-body-inner { padding: 0 30px 36px; border-top: 1px dashed var(--line-soft); padding-top: 30px; }
+  .cluster-summary { font-family: var(--f-display); font-weight: 350; font-size: 18px; line-height: 1.6; color: var(--text-dim); margin-bottom: 30px; max-width: 840px; }
+  .cluster-summary em { font-style: italic; color: var(--jade); }
+  .cluster-summary strong { color: var(--jade); font-weight: 500; }
+  .sides-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 30px; }
+  .side { background: var(--bg-deep); border-left: 3px solid var(--line-strong); padding: 20px 20px 16px; }
+  .side.against { border-left-color: var(--jade); }
+  .side-label { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 14px; }
+  .side.against .side-label { color: var(--jade); }
+  .side-list { display: flex; flex-direction: column; gap: 6px; }
+  .side-row { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line-soft); align-items: baseline; }
+  .side-row:last-child { border-bottom: none; }
+  .side-row .id { font-family: var(--f-mono); font-size: 10px; color: var(--text-faint); letter-spacing: 0.08em; }
+  .side-row .name { font-family: var(--f-body); font-size: 13px; color: var(--text-primary); }
+  .side-row .role { font-family: var(--f-mono); font-size: 9px; color: var(--text-faint); display: block; letter-spacing: 0.1em; margin-top: 2px; text-transform: uppercase; }
+  .cluster-mech { padding: 22px 24px; background: var(--jade-soft); border-left: 3px solid var(--jade); }
+  .cluster-mech-label { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--jade); margin-bottom: 10px; }
+  .cluster-mech-name { font-family: var(--f-display); font-weight: 400; font-size: 22px; color: var(--text-primary); margin-bottom: 14px; }
+  .cluster-mech-body { font-family: var(--f-body); font-size: 14px; line-height: 1.65; color: var(--text-dim); }
+  .cluster-mech-body em { font-style: italic; color: var(--jade); }
+  .cluster-actions { margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .cluster-link { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; background: transparent; color: var(--text-primary); border: 1px solid var(--line-mid); padding: 10px 14px; cursor: pointer; text-decoration: none; transition: all 200ms; }
+  .cluster-link:hover { border-color: var(--jade); color: var(--jade); }
+  .cluster-link.primary { background: var(--jade); color: var(--bg-deep); border-color: var(--jade); font-weight: 700; }
+  @media (max-width: 768px) {
+    .cluster-header { grid-template-columns: 1fr; gap: 14px; padding: 22px 22px; }
+    .cluster-toggle { width: 100%; }
+    .cluster-body-inner { padding: 22px 22px 28px; }
+    .sides-grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body data-page="conflicts">
+
+<div class="meta-bar">
+  <div class="meta-bar-left">
+    <a href="index.html" data-i18n="meta-back">&larr; Back to archive</a>
+    <span class="dot"></span>
+    <span data-i18n="meta-title">&sect; The conflicts</span>
+  </div>
+  <div class="meta-bar-right">
+    <span class="meta-bar-coord" data-i18n="meta-coord">4 site clusters &middot; 4 conflicts</span>
+    <span class="meta-bar-coord">Bangkok &middot; 2026.05</span>
+  </div>
+</div>
+
+<canvas id="ditherCanvas" class="dither-canvas"></canvas>
+
+<header class="page-hero">
+  <div class="wrap">
+    <div class="eyebrow"><span data-i18n="hero-eyebrow">The conflicts &middot; conflict reading</span></div>
+    <h1 class="page-title" data-i18n="hero-title">
+      Know through <em>conflicts</em>
+    </h1>
+    <p class="page-lead" data-i18n="hero-lead">
+      Each conflict has two sides. Click any cluster to expand and see <strong>who lines up where</strong>, which instruments are deployed, and which mechanism it reveals. The same names appear at every site &mdash; that is the diagnosis.
+    </p>
+  </div>
+</header>
+
+<section class="conflicts-section">
+  <div class="wrap" id="clusterList"></div>
+
+  <div class="wrap">
+    <div class="nav-back">
+      <a href="index.html" data-i18n="nav-back">&larr; Back to archive</a>
+      <a href="persona.html" data-i18n="nav-persona">&rarr; Walk this conflict as a person</a>
+      <a href="network.html" data-i18n="nav-network">&rarr; See the network behind the conflicts</a>
+    </div>
+  </div>
+</section>
+
+<script src="dither.js"></script>
+<script src="lang-switch.js"></script>
+<script>
+/* static UI strings (applied via [data-i18n]) */
+window.PAGE_I18N = {
+  en: {
+    "meta-back":"&larr; Back to archive", "meta-title":"&sect; The conflicts", "meta-coord":"4 site clusters &middot; 4 conflicts",
+    "hero-eyebrow":"The conflicts &middot; conflict reading",
+    "hero-title":"Know through <em>conflicts</em>",
+    "hero-lead":"Each conflict has two sides. Click any cluster to expand and see <strong>who lines up where</strong>, which instruments are deployed, and which mechanism it reveals. The same names appear at every site &mdash; that is the diagnosis.",
+    "nav-back":"&larr; Back to archive", "nav-persona":"&rarr; Walk this conflict as a person", "nav-network":"&rarr; See the network behind the conflicts"
+  },
+  zh: {
+    "meta-back":"&larr; 返回档案", "meta-title":"&sect; 矛盾案例", "meta-coord":"4 组地点 &middot; 4 场冲突",
+    "hero-eyebrow":"矛盾案例 &middot; 冲突解读",
+    "hero-title":"从<em>冲突</em>中学习",
+    "hero-lead":"每场冲突都有两方。点击任意一组展开,看看<strong>谁站在哪边</strong>、动用了哪些工具、揭示出哪种机制。同样的名字出现在每一个地点&mdash;&mdash;这正是诊断所在。",
+    "nav-back":"&larr; 返回档案", "nav-persona":"&rarr; 以一个人的身份走这场冲突", "nav-network":"&rarr; 看看冲突背后的关系网"
+  },
+  th: {
+    "meta-back":"&larr; กลับสู่คลัง", "meta-title":"&sect; กรณีพิพาท", "meta-coord":"4 กลุ่มพื้นที่ &middot; 4 ความขัดแย้ง",
+    "hero-eyebrow":"กรณีพิพาท &middot; การอ่านผ่านความขัดแย้ง",
+    "hero-title":"เรียนรู้ผ่าน<em>ความขัดแย้ง</em>",
+    "hero-lead":"ความขัดแย้งแต่ละเรื่องมีสองฝ่าย คลิกที่กลุ่มใดก็ได้เพื่อขยายดูว่า<strong>ใครอยู่ฝ่ายไหน</strong> ใช้เครื่องมืออะไร และเผยกลไกแบบใด ชื่อเดิม ๆ ปรากฏในทุกพื้นที่ &mdash; นั่นคือบทวินิจฉัย",
+    "nav-back":"&larr; กลับสู่คลัง", "nav-persona":"&rarr; เดินความขัดแย้งนี้ในฐานะบุคคล", "nav-network":"&rarr; ดูเครือข่ายเบื้องหลังความขัดแย้ง"
+  }
+};
+
+/* repeated cluster UI strings, per language */
+const CSTR = {
+  en: { expand:"Expand +", collapse:"Collapse &minus;", mech:"&sect; Mechanism revealed", walk:"Walk this case &rarr;", seeMap:"See on map &rarr;", seeNet:"See in network &rarr;" },
+  zh: { expand:"展开 +", collapse:"收起 &minus;", mech:"&sect; 揭示的机制", walk:"走这个案子 &rarr;", seeMap:"在地图上查看 &rarr;", seeNet:"在关系网中查看 &rarr;" },
+  th: { expand:"ขยาย +", collapse:"ย่อ &minus;", mech:"&sect; กลไกที่ถูกเผย", walk:"เดินกรณีนี้ &rarr;", seeMap:"ดูบนแผนที่ &rarr;", seeNet:"ดูในเครือข่าย &rarr;" }
+};
+
+/* helper: actor object {id, name:{...}, role:{...}} */
+function A(id, en, enr, zh, zhr, th, thr){ return { id:id, name:{en:en,zh:zh,th:th}, role:{en:enr,zh:zhr,th:thr} }; }
+
+/* CLUSTERS — figures reconciled to the canonical case (122M baht, 2020–2023) */
+const CLUSTERS = [
+  {
+    id:"C01", sites:"S05 &middot; S08", flagship:true,
+    title:{ en:"<em>Sanjao Mae Thapthim Shrine</em> &middot; Block 33", zh:"<em>妈祖庙</em> &middot; 33 街区", th:"<em>ศาลเจ้าแม่ทับทิม</em> &middot; บล็อก 33" },
+    subtitle:{ en:"Active litigation &middot; 122M baht claim &middot; 2020&ndash;2023", zh:"诉讼进行中 &middot; 一亿两千两百万泰铢索赔 &middot; 2020&ndash;2023", th:"อยู่ระหว่างการฟ้องร้อง &middot; เรียกค่าเสียหาย 122 ล้านบาท &middot; 2020&ndash;2023" },
+    summary:{
+      en:"A 150-year-old Teochew shrine sits on a parcel (Block 33) PMCU has marked for commercial conversion. When the lease lapsed, the community refused to leave. In 2021 PMCU filed a <em>122-million-baht civil-damages claim</em> against the named caretaker, Penprapa Ployseesuay, personally. In August 2023 the lower court ruled for PMCU; the defendants vowed to appeal. <strong>This is the flagship case for this archive.</strong>",
+      zh:"一座有 150 年历史的潮州庙坐落在 PMCU 标记为商业转用的 33 街区地块上。租约失效后,社区拒绝离开。2021 年,PMCU 对具名看护者 Penprapa Ployseesuay 个人提起<em>一亿两千两百万泰铢民事损害赔偿</em>。2023 年 8 月,一审法院判 PMCU 胜诉;被告誓言上诉。<strong>这是本档案的旗舰案例。</strong>",
+      th:"ศาลเจ้าแต้จิ๋วอายุ 150 ปีตั้งอยู่บนแปลง (บล็อก 33) ที่ PMCU กำหนดให้เปลี่ยนเป็นเชิงพาณิชย์ เมื่อสัญญาเช่าสิ้นสุด ชุมชนปฏิเสธที่จะย้ายออก ปี 2021 PMCU ยื่น<em>ฟ้องเรียกค่าเสียหายทางแพ่ง 122 ล้านบาท</em>จากผู้ดูแลที่ระบุชื่อ เพ็ญประภา พลอยสีสุข เป็นการส่วนตัว เดือนสิงหาคม 2023 ศาลชั้นต้นตัดสินให้ PMCU ชนะ จำเลยให้คำมั่นว่าจะอุทธรณ์ <strong>นี่คือกรณีหลักของคลังนี้</strong>" },
+    forSide:{ label:{ en:"For redevelopment", zh:"支持再开发", th:"ฝ่ายสนับสนุนการพัฒนา" }, actors:[
+      A("A01","Chulalongkorn University","Landholder","朱拉隆功大学","土地持有方","จุฬาลงกรณ์มหาวิทยาลัย","ผู้ถือสิทธิ์ที่ดิน"),
+      A("A02","PMCU","Filed the lawsuit","PMCU","提起诉讼","PMCU","ผู้ยื่นฟ้อง"),
+      A("A03","Bangkok Civil Court","Ruled for PMCU 2023","曼谷民事法院","2023 年判 PMCU 胜诉","ศาลแพ่งกรุงเทพ","ตัดสินให้ PMCU ชนะ 2023"),
+      A("A08","Chula Smart City team","Master plan author","朱拉智慧城市团队","总体规划撰写者","ทีมจุฬาฯ สมาร์ตซิตี้","ผู้ร่างแผนแม่บท")
+    ]},
+    againstSide:{ label:{ en:"Against displacement", zh:"反对迫迁", th:"ฝ่ายต้านการขับไล่" }, actors:[
+      A("A09","Shrine caretakers","Defendants","庙看护者","被告","ผู้ดูแลศาลเจ้า","จำเลย"),
+      A("A10","Netiwit Chotipatpaisal","Public activist","Netiwit Chotipatpaisal","公众活动家","เนติวิทย์ โชติภัทร์ไพศาล","นักกิจกรรมสาธารณะ"),
+      A("A11","Sulak Sivaraksa","Engaged Buddhism critic","Sulak Sivaraksa","入世佛教批评者","สุลักษณ์ ศิวรักษ์","นักวิจารณ์พุทธศาสนาเพื่อสังคม"),
+      A("A12","Assoc. of Siamese Architects","Heritage letter (no statutory weight)","暹罗建筑师协会","遗产信函(无法律效力)","สมาคมสถาปนิกสยาม","จดหมายด้านมรดก (ไม่มีน้ำหนักทางกฎหมาย)")
+    ]},
+    mech:{
+      name:{ en:"&sect; M03 + M02 &middot; Litigation &times; Institutional grammar", zh:"&sect; M03 + M02 &middot; 民事诉讼 &times; 制度语法", th:"&sect; M03 + M02 &middot; การฟ้องคดี &times; ไวยากรณ์เชิงสถาบัน" },
+      body:{
+        en:"Lease non-renewal is administrative; civil damages convert refusal into debt. <em>The mechanism does not need to evict &mdash; it needs only to make staying unaffordable.</em> Stacked with M01 (heritage-law gap), the community has no statutory shield to begin with.",
+        zh:"不续约是行政手段;民事赔偿则把拒绝转化为债务。<em>这套机制无需驱逐&mdash;&mdash;只需让&ldquo;留下&rdquo;变得无力负担。</em>再叠加 M01(遗产法空白),社区从一开始就没有法律的护盾。",
+        th:"การไม่ต่อสัญญาเช่าเป็นเรื่องทางปกครอง ส่วนค่าเสียหายทางแพ่งเปลี่ยนการปฏิเสธให้กลายเป็นหนี้ <em>กลไกนี้ไม่จำเป็นต้องไล่ที่ &mdash; เพียงทำให้การอยู่ต่อแบกรับไม่ไหวก็พอ</em> เมื่อซ้อนกับ M01 (ช่องว่างกฎหมายมรดก) ชุมชนก็ไม่มีเกราะทางกฎหมายตั้งแต่ต้น" }
+    }
+  },
+  {
+    id:"C02", sites:"S09 &middot; S10",
+    title:{ en:"Centenary Park <em>vs.</em> Suanluang Teochew shophouses", zh:"百年公园 <em>vs.</em> 苏安隆潮州店屋", th:"อุทยาน 100 ปี <em>ปะทะ</em> ตึกแถวแต้จิ๋วสวนหลวง" },
+    subtitle:{ en:"Award without disclosure &middot; 2014&ndash;2019", zh:"不予披露的奖项 &middot; 2014&ndash;2019", th:"รางวัลที่ไม่เปิดเผยความจริง &middot; 2014&ndash;2019" },
+    summary:{
+      en:"Before Centenary Park opened in 2017, the site's surroundings were a Teochew shophouse district. The community was cleared by 2014. The park went on to win an <em>ASLA Honor Award in 2019</em> for ecological design. The award citation does not mention the cleared families. The shrine kept on the eastern edge is folded into the park's 'cultural heritage' framing.",
+      zh:"在百年公园于 2017 年开放之前,周边曾是一片潮州店屋区。社区于 2014 年前被清空。公园其后于 2019 年因生态设计<em>获 ASLA 荣誉奖</em>。颁奖词只字未提被清空的家庭。保留在东缘的庙,被纳入公园&ldquo;文化遗产&rdquo;的叙述之中。",
+      th:"ก่อนอุทยาน 100 ปีจะเปิดในปี 2017 บริเวณโดยรอบเคยเป็นย่านตึกแถวแต้จิ๋ว ชุมชนถูกเคลียร์ภายในปี 2014 ต่อมาอุทยาน<em>ได้รางวัล ASLA Honor Award ในปี 2019</em> ด้านการออกแบบเชิงนิเวศ คำประกาศรางวัลไม่เอ่ยถึงครอบครัวที่ถูกเคลียร์ ศาลเจ้าที่เหลือไว้ทางขอบด้านตะวันออกถูกนับเป็นส่วนหนึ่งของกรอบ ‘มรดกทางวัฒนธรรม’ ของอุทยาน" },
+    forSide:{ label:{ en:"For the project", zh:"支持项目", th:"ฝ่ายสนับสนุนโครงการ" }, actors:[
+      A("A01","Chulalongkorn University","Client","朱拉隆功大学","委托方","จุฬาลงกรณ์มหาวิทยาลัย","ผู้ว่าจ้าง"),
+      A("A07","LANDPROCESS","Designer","LANDPROCESS","设计方","LANDPROCESS","ผู้ออกแบบ"),
+      A("IL-12","ASLA Honor Award","Reputational instrument","ASLA 荣誉奖","声誉工具","รางวัล ASLA Honor","เครื่องมือด้านชื่อเสียง")
+    ]},
+    againstSide:{ label:{ en:"Erased from the citation", zh:"被颁奖词抹去", th:"ถูกลบจากคำประกาศรางวัล" }, actors:[
+      A("A14","Suanluang shophouse families","Cleared 2014","苏安隆店屋家庭","2014 年被清空","ครอบครัวตึกแถวสวนหลวง","ถูกเคลียร์ 2014"),
+      A("A09","Adjacent shrine community","Made into 'heritage feature'","邻近的庙社区","被变成&ldquo;遗产景观&rdquo;","ชุมชนศาลเจ้าข้างเคียง","ถูกทำให้เป็น ‘องค์ประกอบเชิงมรดก’")
+    ]},
+    mech:{
+      name:{ en:"&sect; M04 &middot; Awards-as-Laundering", zh:"&sect; M04 &middot; 奖项洗白", th:"&sect; M04 &middot; การฟอกขาวด้วยรางวัล" },
+      body:{
+        en:"International design awards do not require disclosure of social displacement. <em>A relocated or kept-as-feature shrine becomes the park's heritage credential; the cleared community disappears into the citation.</em> The award is not given despite the displacement &mdash; it is given because good design has made the displacement invisible.",
+        zh:"国际设计奖项不要求披露社会迫迁。<em>一座被搬迁、或被当作景观保留的庙,成了公园的遗产凭证;被清空的社区消失在颁奖词里。</em>这个奖不是不顾迫迁而颁出&mdash;&mdash;而是因为出色的设计让迫迁变得不可见,才被颁出。",
+        th:"รางวัลออกแบบระดับนานาชาติไม่กำหนดให้เปิดเผยการขับไล่ทางสังคม <em>ศาลเจ้าที่ถูกย้ายหรือเก็บไว้เป็นองค์ประกอบกลายเป็นเครื่องการันตีเชิงมรดกของอุทยาน ชุมชนที่ถูกเคลียร์หายไปในคำประกาศรางวัล</em> รางวัลไม่ได้มอบทั้งที่มีการขับไล่ &mdash; แต่มอบเพราะการออกแบบที่ดีทำให้การขับไล่มองไม่เห็น" }
+    }
+  },
+  {
+    id:"C03", sites:"S04 &middot; S08",
+    title:{ en:"Samyan Mitrtown <em>vs.</em> Sam Yan Market vendors", zh:"三聚同心商城 <em>vs.</em> 三聚市场摊贩", th:"สามย่านมิตรทาวน์ <em>ปะทะ</em> พ่อค้าแม่ค้าตลาดสามย่าน" },
+    subtitle:{ en:"Smart-city framing &middot; 2008&ndash;2019", zh:"智慧城市的话术 &middot; 2008&ndash;2019", th:"การกรอบเป็นสมาร์ตซิตี้ &middot; 2008&ndash;2019" },
+    summary:{
+      en:"Sam Yan Market vendors received eviction notices as the neighbourhood was cleared in 2008 ahead of Samyan Mitrtown (opened September 2019). Many were re-established in the rebuilt complex at <em>higher rents</em>. The project is publicly framed as a smart-city flagship; the displaced are not named in any public communications.",
+      zh:"三聚市场摊贩在 2008 年街区被清空、为三聚同心商城(2019 年 9 月开业)让路时收到驱逐通知。许多人以<em>更高的租金</em>在重建的综合体里重新落脚。该项目被公开包装为智慧城市旗舰;被迫迁者未在任何公开传播中被提及。",
+      th:"พ่อค้าแม่ค้าตลาดสามย่านได้รับหนังสือให้ย้ายออกเมื่อย่านถูกเคลียร์ในปี 2008 ก่อนสามย่านมิตรทาวน์ (เปิดกันยายน 2019) หลายคนได้กลับเข้ามาในอาคารที่สร้างใหม่ด้วย<em>ค่าเช่าที่สูงขึ้น</em> โครงการถูกนำเสนอต่อสาธารณะว่าเป็นกรณีตัวอย่างสมาร์ตซิตี้ ส่วนผู้ถูกขับไล่ไม่ถูกเอ่ยชื่อในการสื่อสารสาธารณะใด ๆ" },
+    forSide:{ label:{ en:"For the smart city", zh:"支持智慧城市", th:"ฝ่ายสนับสนุนสมาร์ตซิตี้" }, actors:[
+      A("A02","PMCU","Land assembly","PMCU","土地整合","PMCU","รวบรวมที่ดิน"),
+      A("A06","GOLD / Frasers","Developer","GOLD / Frasers","开发商","GOLD / Frasers","ผู้พัฒนา"),
+      A("IL-19","Chula Smart City framing","Branding instrument","朱拉智慧城市话术","品牌工具","การกรอบสมาร์ตซิตี้ของจุฬาฯ","เครื่องมือสร้างแบรนด์")
+    ]},
+    againstSide:{ label:{ en:"Silenced in the narrative", zh:"在叙事中被噤声", th:"ถูกทำให้เงียบในเรื่องเล่า" }, actors:[
+      A("A13","Sam Yan market vendors","Evicted, partially re-established","三聚市场摊贩","被驱逐,部分重新落脚","พ่อค้าแม่ค้าตลาดสามย่าน","ถูกไล่ที่ กลับมาได้บางส่วน")
+    ]},
+    mech:{
+      name:{ en:"&sect; M05 &middot; Displacement Silence", zh:"&sect; M05 &middot; 位移沉默", th:"&sect; M05 &middot; ความเงียบของการขับไล่" },
+      body:{
+        en:"The Master Plan and Smart City framework describe Sam Yan's transformation in the language of innovation. <em>Displaced communities appear in no project description.</em> What the documents do not say is as legible as what they do.",
+        zh:"总体规划与智慧城市框架用创新的语言描述三聚的转型。<em>被迫迁的社区不出现在任何项目说明里。</em>文件不说的,和它说的一样清晰可读。",
+        th:"แผนแม่บทและกรอบสมาร์ตซิตี้บรรยายการเปลี่ยนแปลงของสามย่านด้วยภาษาแห่งนวัตกรรม <em>ชุมชนที่ถูกขับไล่ไม่ปรากฏในคำอธิบายโครงการใดเลย</em> สิ่งที่เอกสารไม่พูดนั้นอ่านออกได้ชัดพอ ๆ กับสิ่งที่มันพูด" }
+    }
+  },
+  {
+    id:"C04", sites:"S01",
+    title:{ en:"Scala Theatre <em>vs.</em> Block A", zh:"斯卡拉影院 <em>vs.</em> 商业用地 Block A", th:"สกาลา <em>ปะทะ</em> บล็อก A" },
+    subtitle:{ en:"The precedent &middot; 2020&ndash;2021", zh:"作为先例 &middot; 2020&ndash;2021", th:"บรรทัดฐาน &middot; 2020&ndash;2021" },
+    summary:{
+      en:"Scala Cinema closed in July 2020 and was demolished in November 2021 after PMCU did not renew its lease; the site passed to Central Pattana for retail. Activists &mdash; including Netiwit &mdash; explicitly invoke Scala as the warning case for the shrine. <em>The pattern was rehearsed here first.</em>",
+      zh:"斯卡拉影院于 2020 年 7 月停业,在 PMCU 不续约后,于 2021 年 11 月被拆除;原址转予尚泰置地作零售用途。包括 Netiwit 在内的活动家明确把斯卡拉援引为庙案的警示。<em>这套模式最早在这里预演。</em>",
+      th:"โรงหนังสกาลาปิดตัวเดือนกรกฎาคม 2020 และถูกรื้อถอนเดือนพฤศจิกายน 2021 หลัง PMCU ไม่ต่อสัญญาเช่า พื้นที่ตกเป็นของเซ็นทรัลพัฒนาเพื่อการค้าปลีก นักกิจกรรม &mdash; รวมถึงเนติวิทย์ &mdash; อ้างถึงสกาลาอย่างชัดเจนว่าเป็นกรณีเตือนภัยสำหรับศาลเจ้า <em>รูปแบบนี้ถูกซ้อมที่นี่เป็นที่แรก</em>" },
+    forSide:{ label:{ en:"For demolition", zh:"支持拆除", th:"ฝ่ายสนับสนุนการรื้อถอน" }, actors:[
+      A("A02","PMCU","Lease non-renewal","PMCU","不续约","PMCU","ไม่ต่อสัญญาเช่า"),
+      A("A05","Central Pattana","Subsequent lessee","尚泰置地","后续承租人","เซ็นทรัลพัฒนา","ผู้เช่ารายต่อมา")
+    ]},
+    againstSide:{ label:{ en:"Preservation campaign", zh:"保育运动", th:"การรณรงค์อนุรักษ์" }, actors:[
+      A("A10","Netiwit Chotipatpaisal","Joined preservation effort","Netiwit Chotipatpaisal","加入保育行动","เนติวิทย์ โชติภัทร์ไพศาล","เข้าร่วมความพยายามอนุรักษ์"),
+      A("A12","Assoc. of Siamese Architects","Preservation petition","暹罗建筑师协会","保育请愿","สมาคมสถาปนิกสยาม","คำร้องอนุรักษ์")
+    ]},
+    mech:{
+      name:{ en:"&sect; M02 &middot; Institutional Grammar &mdash; first instance", zh:"&sect; M02 &middot; 制度语法 &middot; 首次显形", th:"&sect; M02 &middot; ไวยากรณ์เชิงสถาบัน &mdash; ปรากฏครั้งแรก" },
+      body:{
+        en:"PMCU's lease non-renewal pattern was visible here first. <em>Each non-renewal looks like an isolated administrative event.</em> Only across multiple sites does the grammar become legible as grammar &mdash; and Scala is the entry into that pattern.",
+        zh:"PMCU 不续约的模式最早在这里显现。<em>每一次不续约都看似孤立的行政事件。</em>只有横跨多个地点,这套语法才作为&ldquo;语法&rdquo;变得可读&mdash;&mdash;而斯卡拉正是进入这一模式的入口。",
+        th:"รูปแบบการไม่ต่อสัญญาเช่าของ PMCU ปรากฏที่นี่เป็นที่แรก <em>การไม่ต่อสัญญาแต่ละครั้งดูเหมือนเหตุการณ์ทางปกครองที่แยกขาด</em> ต่อเมื่อมองข้ามหลายพื้นที่ ไวยากรณ์จึงอ่านออกว่าเป็นไวยากรณ์ &mdash; และสกาลาคือทางเข้าสู่รูปแบบนั้น" }
+    }
+  }
+];
+
+/* ====================================================================
+   DITHER BG
+   ==================================================================== */
+
+/* ====================================================================
+   BUILD CLUSTERS  (re-renders on language change, keeping open state)
+   ==================================================================== */
+const list = document.getElementById("clusterList");
+const openIds = new Set(["C01"]);
+function L(){ return (window.I18N ? window.I18N.current : "en"); }
+function tr(o){ if(o==null) return ""; if(typeof o==="string") return o; var l=L(); return o[l]!=null?o[l]:(o.en!=null?o.en:""); }
+
+function renderClusters(){
+  const C = CSTR[L()] || CSTR.en;
+  list.innerHTML = "";
+  CLUSTERS.forEach(c => {
+    const isOpen = openIds.has(c.id);
+    const node = document.createElement("div");
+    node.className = "cluster" + (c.flagship ? " flagship" : "") + (isOpen ? " open" : "");
+    node.dataset.id = c.id;
+    node.innerHTML = `
+      <div class="cluster-header">
+        <div class="cluster-num">${c.id}<br>${c.sites}</div>
+        <div>
+          <h2 class="cluster-title">${tr(c.title)}</h2>
+          <div class="cluster-subtitle">${tr(c.subtitle)}</div>
+        </div>
+        <button class="cluster-toggle">${isOpen ? C.collapse : C.expand}</button>
+      </div>
+      <div class="cluster-body">
+        <div class="cluster-body-inner">
+          <p class="cluster-summary">${tr(c.summary)}</p>
+
+          <div class="sides-grid">
+            <div class="side">
+              <div class="side-label">&sect; ${tr(c.forSide.label)}</div>
+              <div class="side-list">
+                ${c.forSide.actors.map(a => `<div class="side-row"><span class="id">${a.id}</span><span class="name">${tr(a.name)}<span class="role">${tr(a.role)}</span></span></div>`).join("")}
+              </div>
+            </div>
+            <div class="side against">
+              <div class="side-label">&sect; ${tr(c.againstSide.label)}</div>
+              <div class="side-list">
+                ${c.againstSide.actors.map(a => `<div class="side-row"><span class="id">${a.id}</span><span class="name">${tr(a.name)}<span class="role">${tr(a.role)}</span></span></div>`).join("")}
+              </div>
+            </div>
+          </div>
+
+          <div class="cluster-mech">
+            <div class="cluster-mech-label">${C.mech}</div>
+            <div class="cluster-mech-name">${tr(c.mech.name)}</div>
+            <div class="cluster-mech-body">${tr(c.mech.body)}</div>
+          </div>
+
+          <div class="cluster-actions">
+            ${c.flagship ? `<a class="cluster-link primary" href="persona.html">${C.walk}</a>` : ''}
+            <a class="cluster-link" href="map.html">${C.seeMap}</a>
+            <a class="cluster-link" href="network.html">${C.seeNet}</a>
+          </div>
+        </div>
+      </div>
+    `;
+    list.appendChild(node);
+
+    const header = node.querySelector(".cluster-header");
+    const toggle = node.querySelector(".cluster-toggle");
+    header.addEventListener("click", () => {
+      const open = node.classList.toggle("open");
+      if (open) openIds.add(c.id); else openIds.delete(c.id);
+      toggle.innerHTML = open ? (CSTR[L()]||CSTR.en).collapse : (CSTR[L()]||CSTR.en).expand;
+    });
+  });
+}
+
+renderClusters();
+document.addEventListener("langchange", renderClusters);
+</script>
+</body>
+</html>

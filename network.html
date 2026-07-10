@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chula Powermap · The Network · who is in the room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chula-powermap.css">
+<style>
+  /* ===== stance palette (poster: threat → defender) tuned for dark plum bg ===== */
+  :root{
+    --st-threat:#8d6bdf;     --st-threat-fill:rgba(141,107,223,0.92);
+    --st-complicit:#9a86c4;  --st-complicit-fill:rgba(154,134,196,0.42);
+    --st-neutral:#8e8aa0;    --st-neutral-fill:rgba(142,138,160,0.38);
+    --st-defender:#5fb892;   --st-defender-fill:rgba(95,184,146,0.88);
+    --st-shrine:#e98570;     --st-shrine-fill:rgba(233,133,112,0.92);
+    --hl:#7dd1ab;            /* jade highlight */
+  }
+
+  .page-subtitle{
+    margin-top:14px; font-family:var(--f-display); font-style:italic;
+    font-size:clamp(18px,2.2vw,26px); line-height:1.25; color:var(--text-primary); letter-spacing:-.01em;
+  }
+  .page-subtitle em{ color:var(--hl); font-style:italic; }
+  html[data-lang="zh"] .page-title,
+  html[data-lang="zh"] .page-subtitle,
+  html[data-lang="zh"] .page-lead,
+  html[data-lang="zh"] .na-name,
+  html[data-lang="zh"] .na-section-body{ font-family:var(--f-cn); }
+  html[data-lang="th"] .page-title,
+  html[data-lang="th"] .page-subtitle,
+  html[data-lang="th"] .page-lead,
+  html[data-lang="th"] .na-name,
+  html[data-lang="th"] .na-section-body{ font-family:var(--f-th); }
+
+  .net-toolbar{
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    background:rgba(26,20,40,0.78); padding:12px 16px;
+    border:1px solid var(--line-mid); border-bottom:none; margin-top:28px;
+  }
+  .net-toolbar.row2{
+    margin-top:0;
+    border-top:1px solid var(--line-soft);
+    background:rgba(26,20,40,0.62);
+  }
+  .net-toolbar-label{ font-family:var(--f-mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-secondary); margin-right:4px; }
+  .net-chip{
+    font-family:var(--f-mono); font-size:10px; letter-spacing:.10em; text-transform:uppercase;
+    background:transparent; color:var(--text-primary); border:1px solid var(--line-mid);
+    padding:7px 11px; cursor:pointer; font-weight:500; transition:all 160ms; border-radius:2px;
+  }
+  .net-chip:hover{ border-color:var(--hl); color:var(--hl); }
+  .net-chip.active{ background:var(--hl); color:var(--bg-deep); border-color:var(--hl); font-weight:700; }
+  .net-chip .sw{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:-1px; }
+  .net-chip[data-stance="threat"] .sw{ background:var(--st-threat); }
+  .net-chip[data-stance="complicit"] .sw{ background:var(--st-complicit); }
+  .net-chip[data-stance="neutral"] .sw{ background:var(--st-neutral); }
+  .net-chip[data-stance="defender"] .sw{ background:var(--st-defender); }
+  .net-chip[data-stance="shrine"] .sw{ background:var(--st-shrine); }
+
+  .net-search{
+    font-family:var(--f-body); font-size:12px; color:var(--text-primary);
+    background:var(--bg-card); border:1px solid var(--line-mid); border-radius:2px;
+    padding:7px 10px; min-width:190px; max-width:320px; outline:none;
+  }
+  .net-search:focus{ border-color:var(--hl); }
+  .net-btn{
+    font-family:var(--f-mono); font-size:10px; letter-spacing:.10em; text-transform:uppercase;
+    background:var(--bg-card); color:var(--text-primary); border:1px solid var(--line-mid);
+    padding:7px 11px; cursor:pointer; transition:all 160ms; border-radius:2px;
+  }
+  .net-btn:hover{ border-color:var(--hl); color:var(--hl); }
+
+  .net-stage{ display:grid; grid-template-columns:1.7fr 1fr; gap:0; border:1px solid var(--line-mid); border-top:none; }
+  .net-canvas-wrap{ background:
+    radial-gradient(circle at 50% 44%, rgba(125,209,171,.10) 0 2px, transparent 3px),
+    radial-gradient(circle at 50% 44%, rgba(125,209,171,.08) 0 15%, transparent 15.2%),
+    radial-gradient(circle at 50% 44%, rgba(237,228,245,.055) 0 31%, transparent 31.2%),
+    radial-gradient(circle at 50% 44%, #221a38 0%, var(--bg-deep) 72%);
+    position:relative; border-right:1px solid var(--line-mid); overflow:hidden; }
+  #netSvg{ width:100%; height:680px; display:block; cursor:default; touch-action:none; }
+
+  .net-hud{ position:absolute; left:14px; bottom:12px; font-family:var(--f-mono); font-size:9.5px; letter-spacing:.10em; color:var(--text-faint); line-height:1.7; pointer-events:none; }
+  .net-hud b{ color:var(--text-secondary); font-weight:500; }
+  .net-zoom{ position:absolute; right:12px; bottom:12px; display:flex; flex-direction:column; gap:6px; }
+  .net-zoom button{ width:30px; height:30px; font-size:16px; line-height:1; background:var(--bg-deep-firm); color:var(--text-primary); border:1px solid var(--line-mid); cursor:pointer; border-radius:2px; }
+  .net-zoom button:hover{ border-color:var(--hl); color:var(--hl); }
+
+  .net-link{ stroke:rgba(184,163,216,0.11); stroke-width:.85; fill:none; transition:stroke 200ms, stroke-width 200ms, opacity 200ms; }
+  .net-link.highlighted{ stroke:var(--hl); stroke-width:1.6; opacity:1; }
+  .net-link.dimmed{ stroke:rgba(184,163,216,0.025); }
+
+  .net-node{ cursor:pointer; }
+  .net-node-shape{ stroke-width:1.4; transition:stroke 180ms, stroke-width 180ms; }
+  .net-node[data-stance="threat"]   .net-node-shape{ fill:var(--st-threat-fill);   stroke:var(--st-threat); }
+  .net-node[data-stance="complicit"].net-node-shape, .net-node[data-stance="complicit"] .net-node-shape{ fill:var(--st-complicit-fill); stroke:var(--st-complicit); }
+  .net-node[data-stance="neutral"]  .net-node-shape{ fill:var(--st-neutral-fill);  stroke:var(--st-neutral); }
+  .net-node[data-stance="defender"] .net-node-shape{ fill:var(--st-defender-fill); stroke:var(--st-defender); }
+  .net-node[data-stance="shrine"]   .net-node-shape{ fill:var(--st-shrine-fill);   stroke:var(--st-shrine); }
+  .net-node.active .net-node-shape, .net-node:hover .net-node-shape{ stroke:var(--hl); stroke-width:2.6; }
+  .net-node.dimmed{ opacity:0.18; }
+  .net-node-code{ fill:var(--bg-deep); font-family:var(--f-mono); font-weight:600; font-size:8px; pointer-events:none; text-anchor:middle; }
+  .net-node[data-stance="complicit"] .net-node-code, .net-node[data-stance="neutral"] .net-node-code{ fill:var(--text-primary); }
+  .net-node-label{ fill:var(--text-faint); font-family:var(--f-body); font-size:9px; font-weight:500; pointer-events:none; text-anchor:middle; transition:fill 180ms; }
+  html[data-lang="zh"] .net-node-label{ font-family:var(--f-cn); font-size:8.5px; }
+  html[data-lang="th"] .net-node-label{ font-family:var(--f-th); font-size:8.5px; }
+  .net-node:hover .net-node-label, .net-node.active .net-node-label{ fill:var(--text-primary); }
+  .net-node.faded-label .net-node-label{ display:none; }
+
+  /* analysis panel */
+  .net-analysis{ background:var(--bg-card); padding:26px 22px; display:flex; flex-direction:column; min-height:680px; }
+  .na-tag{ font-family:var(--f-mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-secondary); margin-bottom:12px; }
+  .na-badges{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .na-badge{ font-family:var(--f-mono); font-size:9px; letter-spacing:.10em; text-transform:uppercase; padding:4px 8px; border-radius:2px; border:1px solid; }
+  .na-badge.type{ color:var(--text-primary); border-color:var(--line-strong); }
+  .na-badge.stance[data-stance="threat"]{ color:var(--st-threat); border-color:var(--st-threat); }
+  .na-badge.stance[data-stance="complicit"]{ color:var(--st-complicit); border-color:var(--st-complicit); }
+  .na-badge.stance[data-stance="neutral"]{ color:var(--st-neutral); border-color:var(--st-neutral); }
+  .na-badge.stance[data-stance="defender"]{ color:var(--st-defender); border-color:var(--st-defender); }
+  .na-badge.stance[data-stance="shrine"]{ color:var(--st-shrine); border-color:var(--st-shrine); }
+  .na-badge.year{ color:var(--text-secondary); border-color:var(--line-mid); }
+  .na-name{ font-family:var(--f-display); font-weight:400; font-size:25px; line-height:1.12; color:var(--text-primary); margin-bottom:5px; letter-spacing:-.015em; }
+  .na-name em{ font-style:italic; color:var(--st-defender); }
+  .na-cn{ font-family:var(--f-cn); font-size:14px; color:var(--text-secondary); margin-bottom:6px; }
+  .na-section{ margin-top:16px; padding-top:14px; border-top:1px dashed var(--line-soft); }
+  .na-section-label{ font-family:var(--f-mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-secondary); margin-bottom:9px; }
+  .na-section-body{ font-family:var(--f-body); font-size:13.5px; line-height:1.65; color:var(--text-primary); }
+  .na-metrics{ display:flex; gap:18px; }
+  .na-metric .v{ font-family:var(--f-display); font-size:26px; color:var(--hl); line-height:1; }
+  .na-metric .k{ font-family:var(--f-mono); font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); margin-top:4px; }
+  .na-conns{ display:flex; flex-direction:column; gap:2px; max-height:230px; overflow:auto; }
+  .na-conn{ display:grid; grid-template-columns:46px 1fr; gap:10px; padding:7px 4px; border-bottom:1px dashed var(--line-soft); align-items:baseline; cursor:pointer; transition:background 140ms; }
+  .na-conn:hover{ background:var(--bg-card-2); }
+  .na-conn .id{ font-family:var(--f-mono); font-size:10px; }
+  .na-conn .id[data-stance="threat"]{ color:var(--st-threat); }
+  .na-conn .id[data-stance="complicit"]{ color:var(--st-complicit); }
+  .na-conn .id[data-stance="neutral"]{ color:var(--st-neutral); }
+  .na-conn .id[data-stance="defender"]{ color:var(--st-defender); }
+  .na-conn .id[data-stance="shrine"]{ color:var(--st-shrine); }
+  .na-conn .name{ font-size:12.5px; color:var(--text-primary); }
+  .na-empty{ flex:1; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--text-faint); font-family:var(--f-mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; }
+
+  @media (max-width:1024px){
+    .net-stage{ grid-template-columns:1fr; }
+    .net-canvas-wrap{ border-right:none; border-bottom:1px solid var(--line-mid); }
+    #netSvg{ height:520px; }
+    .net-analysis{ min-height:auto; }
+  }
+</style>
+</head>
+<body data-page="network">
+
+<div class="meta-bar">
+  <div class="meta-bar-left">
+    <a href="index.html" data-i18n="meta-back">&larr; Back to archive</a>
+    <span class="dot"></span>
+    <span data-i18n="meta-title">&sect; The network</span>
+  </div>
+  <div class="meta-bar-right">
+    <span class="meta-bar-coord" id="metaCount">— actors · — instruments · — events · — sites</span>
+    <span class="meta-bar-coord">Bangkok · 2026.06</span>
+  </div>
+</div>
+
+<canvas id="ditherCanvas" class="dither-canvas"></canvas>
+
+<header class="page-hero">
+  <div class="wrap">
+    <div class="eyebrow"><span data-i18n="hero-eyebrow">The network &middot; power relations</span></div>
+    <h1 class="page-title" data-i18n="hero-title">
+      It was <em>never</em><br>two parties.
+    </h1>
+    <p class="page-subtitle" data-i18n="hero-subtitle">The same names appear at every site. <em>That is the system.</em></p>
+    <p class="page-lead" data-i18n="hero-lead">
+      Every node — <strong>actor, instrument, event, or site</strong> — is coloured by where it stands, from <span style="color:var(--st-threat)">threat</span> to <span style="color:var(--st-defender)">defender</span>, around the <span style="color:var(--st-shrine)">shrine</span> at the centre. Hover, drag, search, or switch layouts.
+    </p>
+  </div>
+</header>
+
+<section class="section-block">
+  <div class="wrap">
+    <!-- toolbar row 1: type filter + search + layout -->
+    <div class="net-toolbar">
+      <span class="net-toolbar-label" data-i18n="type-label">Type</span>
+      <button class="net-chip active" data-filter="all" data-i18n="filter-all">All</button>
+      <button class="net-chip" data-filter="actor" data-i18n="filter-actors">Actors</button>
+      <button class="net-chip" data-filter="instrument" data-i18n="filter-instruments">Instruments</button>
+      <button class="net-chip" data-filter="event" data-i18n="filter-events">Events</button>
+      <button class="net-chip" data-filter="site" data-i18n="filter-sites">Sites</button>
+      <span style="flex:1"></span>
+      <input id="netSearch" class="net-search" type="text" placeholder="Search a node…  e.g. PMCU, shrine, lease" autocomplete="off">
+      <button class="net-btn" id="layoutToggle">Layout &middot; Atlas</button>
+      <button class="net-btn" id="resetView" data-i18n="reset">Reset</button>
+    </div>
+    <!-- toolbar row 2: stance legend / filter -->
+    <div class="net-toolbar row2">
+      <span class="net-toolbar-label" data-i18n="stance-label">Stance</span>
+      <button class="net-chip active" data-stancefilter="all" data-i18n="stance-all">All</button>
+      <button class="net-chip" data-stancefilter="threat" data-stance="threat"><span class="sw"></span><span data-i18n="stance-threat">Threat</span></button>
+      <button class="net-chip" data-stancefilter="complicit" data-stance="complicit"><span class="sw"></span><span data-i18n="stance-complicit">Complicit</span></button>
+      <button class="net-chip" data-stancefilter="neutral" data-stance="neutral"><span class="sw"></span><span data-i18n="stance-neutral">Neutral</span></button>
+      <button class="net-chip" data-stancefilter="defender" data-stance="defender"><span class="sw"></span><span data-i18n="stance-defender">Defender</span></button>
+      <button class="net-chip" data-stancefilter="shrine" data-stance="shrine"><span class="sw"></span><span data-i18n="stance-shrine">Shrine</span></button>
+      <span style="flex:1"></span>
+      <span class="net-toolbar-label" style="margin:0" data-i18n="shape-key">○ actor &nbsp; ▢ instrument &nbsp; ◇ event &nbsp; ◉ site</span>
+    </div>
+
+    <div class="net-stage">
+      <div class="net-canvas-wrap">
+        <svg id="netSvg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+          <g id="netViewport">
+            <g id="netLinksLayer"></g>
+            <g id="netNodesLayer"></g>
+          </g>
+        </svg>
+        <div class="net-hud">
+          <div><b id="hudFocus">S05 · Shrine</b></div>
+          <div data-i18n="hud-help">scroll to zoom &middot; click node for analysis</div>
+        </div>
+        <div class="net-zoom">
+          <button id="zoomIn">+</button>
+          <button id="zoomOut">−</button>
+        </div>
+      </div>
+      <aside class="net-analysis" id="analysisPanel">
+        <div class="na-empty" data-i18n="panel-empty">Hover a node to read the analysis</div>
+      </aside>
+    </div>
+
+    <div class="nav-back">
+      <a href="index.html" data-i18n="nav-back">&larr; Back to archive</a>
+      <a href="map.html" data-i18n="nav-map">&rarr; See the sites on the map</a>
+      <a href="conflicts.html" data-i18n="nav-conflicts">&rarr; See the conflict cases</a>
+    </div>
+  </div>
+</section>
+
+<script>
+window.PAGE_I18N = {
+  en: {
+    "meta-back":"&larr; Back to archive", "meta-title":"&sect; The network",
+    "hero-eyebrow":"The network &middot; power relations",
+    "hero-title":"It was <em>never</em><br>two parties.",
+    "hero-subtitle":"The same names appear at every site. <em>That is the system.</em>",
+    "hero-lead":"Every node &mdash; <strong>actor, instrument, event, or site</strong> &mdash; is coloured by where it stands, from <span style=\"color:var(--st-threat)\">threat</span> to <span style=\"color:var(--st-defender)\">defender</span>, around the <span style=\"color:var(--st-shrine)\">shrine</span> at the centre. Click a node to isolate its local relations.",
+    "type-label":"Type", "filter-all":"All", "filter-actors":"Actors", "filter-instruments":"Instruments", "filter-events":"Events", "filter-sites":"Sites",
+    "stance-label":"Stance", "stance-all":"All", "stance-threat":"Threat", "stance-complicit":"Complicit", "stance-neutral":"Neutral", "stance-defender":"Defender", "stance-shrine":"Shrine",
+    "shape-key":"○ actor &nbsp; ▢ instrument &nbsp; ◇ event &nbsp; ◉ site",
+    "reset":"Reset", "hud-help":"scroll to zoom &middot; click node for analysis", "panel-empty":"Hover a node to read the analysis",
+    "nav-back":"&larr; Back to archive", "nav-map":"&rarr; See the sites on the map", "nav-conflicts":"&rarr; See the conflict cases"
+  },
+  zh: {
+    "meta-back":"&larr; 返回档案", "meta-title":"&sect; 关系网络",
+    "hero-eyebrow":"关系网络 &middot; 权力关系",
+    "hero-title":"这从<em>不是</em><br>两方之争。",
+    "hero-subtitle":"同样的名字，出现在每一个场域。<em>这就是系统。</em>",
+    "hero-lead":"每个节点 &mdash; <strong>行动者、工具、事件或地点</strong> &mdash; 都按其立场着色，从<span style=\"color:var(--st-threat)\">威胁方</span>到<span style=\"color:var(--st-defender)\">守护方</span>，围绕中心的<span style=\"color:var(--st-shrine)\">庙</span>展开。点击节点可单独查看它的局部关系。",
+    "type-label":"类型", "filter-all":"全部", "filter-actors":"行动者", "filter-instruments":"工具", "filter-events":"事件", "filter-sites":"地点",
+    "stance-label":"立场", "stance-all":"全部", "stance-threat":"威胁方", "stance-complicit":"共谋方", "stance-neutral":"中性", "stance-defender":"守护方", "stance-shrine":"庙/核心",
+    "shape-key":"○ 行动者 &nbsp; ▢ 工具 &nbsp; ◇ 事件 &nbsp; ◉ 地点",
+    "reset":"重置", "hud-help":"滚轮缩放 &middot; 点击节点查看分析", "panel-empty":"悬停或点击节点以查看分析",
+    "nav-back":"&larr; 返回档案", "nav-map":"&rarr; 在地图上查看地点", "nav-conflicts":"&rarr; 查看冲突案例"
+  },
+  th: {
+    "meta-back":"&larr; กลับสู่คลัง", "meta-title":"&sect; เครือข่าย",
+    "hero-eyebrow":"เครือข่าย &middot; ความสัมพันธ์เชิงอำนาจ",
+    "hero-title":"เรื่องนี้<em>ไม่เคย</em><br>มีแค่สองฝ่าย",
+    "hero-subtitle":"ชื่อเดิมปรากฏซ้ำในทุกพื้นที่ <em>นั่นคือระบบ</em>",
+    "hero-lead":"แต่ละโหนด &mdash; <strong>ผู้กระทำ เครื่องมือ เหตุการณ์ หรือพื้นที่</strong> &mdash; ถูกลงสีตามจุดยืน ตั้งแต่<span style=\"color:var(--st-threat)\">ฝ่ายคุกคาม</span>ถึง<span style=\"color:var(--st-defender)\">ฝ่ายปกป้อง</span> รอบ<span style=\"color:var(--st-shrine)\">ศาลเจ้า</span>ที่อยู่กลางแผนผัง คลิกโหนดเพื่อแยกดูความสัมพันธ์เฉพาะจุด",
+    "type-label":"ประเภท", "filter-all":"ทั้งหมด", "filter-actors":"ผู้กระทำ", "filter-instruments":"เครื่องมือ", "filter-events":"เหตุการณ์", "filter-sites":"พื้นที่",
+    "stance-label":"จุดยืน", "stance-all":"ทั้งหมด", "stance-threat":"คุกคาม", "stance-complicit":"ร่วมเอื้อ", "stance-neutral":"กลาง", "stance-defender":"ปกป้อง", "stance-shrine":"ศาลเจ้า",
+    "shape-key":"○ ผู้กระทำ &nbsp; ▢ เครื่องมือ &nbsp; ◇ เหตุการณ์ &nbsp; ◉ พื้นที่",
+    "reset":"รีเซ็ต", "hud-help":"เลื่อนเมาส์เพื่อซูม &middot; คลิกโหนดเพื่ออ่านบทวิเคราะห์", "panel-empty":"ชี้หรือคลิกโหนดเพื่ออ่านบทวิเคราะห์",
+    "nav-back":"&larr; กลับสู่คลัง", "nav-map":"&rarr; ดูพื้นที่บนแผนที่", "nav-conflicts":"&rarr; ดูกรณีความขัดแย้ง"
+  }
+};
+</script>
+<script src="dither.js?v=motion-20260625"></script>
+<script src="network-data.js"></script>
+<script src="lang-switch.js"></script>
+<script src="network-graph.js?v=locked-20260625"></script>
+</body>
+</html>

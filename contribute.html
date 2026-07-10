@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chula Powermap · Contribute</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chula-powermap.css">
+<style>
+  /* ============================================================
+     SELF-CONTAINED DARK META-PAGE THEME
+     (tokens reconstructed so the page renders standalone —
+      same workaround pattern as the other meta pages)
+     ============================================================ */
+  :root {
+    --bg-deep: #140e22;
+    --bg-deep-soft: #1a1330;
+    --bg-card: #221a38;
+    --bg-card-2: #2a2142;
+    --text-primary: #f3eee6;
+    --text-dim: #cfc6db;
+    --text-secondary: #9b8fb3;
+    --text-faint: #6f6585;
+    --line-mid: rgba(243, 238, 230, 0.14);
+    --line-soft: rgba(243, 238, 230, 0.07);
+    --jade: #5fb892;
+    --jade-bright: #7ed4ab;
+    --moss: #4da37a;
+    --moss-soft: rgba(95, 184, 146, 0.12);
+    --signal-jade: #5fb892;
+    --green: #5fb892;
+    --f-display: "Fraunces", Georgia, serif;
+    --f-body: "Inter Tight", system-ui, sans-serif;
+    --f-mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  /* CJK / Thai glyph fallback per language (latin stays Fraunces/Inter) */
+  body[data-lang="zh"] {
+    --f-display: "Fraunces", "Noto Serif SC", serif;
+    --f-body: "Inter Tight", "Noto Serif SC", sans-serif;
+  }
+  body[data-lang="th"] {
+    --f-display: "Fraunces", "Noto Sans Thai", serif;
+    --f-body: "Inter Tight", "Noto Sans Thai", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: var(--f-body);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { width: min(1180px, calc(100vw - 40px)); margin: 0 auto; }
+
+  /* ---------- meta bar ---------- */
+  .meta-bar {
+    position: relative; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    padding: 14px clamp(20px, 4vw, 40px);
+    border-bottom: 1px solid var(--line-mid);
+    font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-secondary);
+    background: rgba(20, 14, 34, 0.72);
+    backdrop-filter: blur(10px);
+  }
+  .meta-bar-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .meta-bar-left a { color: var(--text-secondary); text-decoration: none; transition: color 180ms; }
+  .meta-bar-left a:hover { color: var(--jade); }
+  .meta-bar .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--signal-jade); }
+  .meta-bar-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .meta-bar-coord { color: var(--text-faint); }
+
+  /* ---------- language switch ---------- */
+  .lang-switch { display: inline-flex; gap: 4px; padding: 3px; border: 1px solid var(--line-mid); border-radius: 2px; }
+  .lang-btn {
+    border: 0; background: transparent; cursor: pointer;
+    padding: 5px 10px;
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--text-secondary);
+    transition: background 160ms, color 160ms;
+  }
+  .lang-btn:hover { color: var(--text-primary); }
+  .lang-btn.active { background: var(--signal-jade); color: var(--bg-deep); font-weight: 600; }
+
+  /* ---------- dither bg ---------- */
+  .dither-canvas { position: fixed; inset: 0; z-index: 0; opacity: 0.5; pointer-events: none; }
+  .meta-bar, .page-hero, .merge-section { position: relative; z-index: 1; }
+
+  /* ---------- hero ---------- */
+  .page-hero { padding: clamp(48px, 7vw, 86px) 0 clamp(28px, 4vw, 46px); }
+  .eyebrow {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--f-mono); font-size: 11px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-secondary);
+    margin-bottom: 26px;
+  }
+  .page-title {
+    margin: 0; max-width: 16ch;
+    font-family: var(--f-display); font-weight: 360;
+    font-size: clamp(40px, 6.4vw, 92px); line-height: 0.96;
+    letter-spacing: -0.03em; color: var(--text-primary);
+  }
+  .page-title em { font-style: italic; color: var(--jade); }
+  .page-title .cn {
+    display: block; margin-top: 16px;
+    font-size: clamp(18px, 2.2vw, 26px); letter-spacing: 0;
+    color: var(--text-faint); font-weight: 400;
+  }
+  .page-lead {
+    max-width: 60ch; margin: 30px 0 0;
+    font-family: var(--f-display); font-weight: 300;
+    font-size: clamp(19px, 2.1vw, 28px); line-height: 1.5;
+    color: var(--text-dim);
+  }
+  .page-lead strong { color: var(--text-primary); font-weight: 500; }
+  .page-lead em { font-style: italic; color: var(--jade-bright); }
+
+  /* ---------- two-column merge layout ---------- */
+  .merge-section { padding: clamp(20px, 3vw, 40px) 0 90px; }
+  .merge-layout {
+    display: grid;
+    grid-template-columns: 0.82fr 1.18fr;   /* left guidelines ~41% · right form ~59% */
+    gap: clamp(28px, 4vw, 56px);
+    align-items: start;
+  }
+
+  /* ----- left: guidelines ----- */
+  .guide-col { min-width: 0; }
+  .guide-block { padding: 28px 0; border-bottom: 1px solid var(--line-mid); }
+  .guide-block:first-child { padding-top: 8px; }
+  .guide-block:last-child { border-bottom: none; }
+  .guide-label {
+    font-family: var(--f-mono); font-size: 10.5px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-secondary); margin-bottom: 12px;
+  }
+  .guide-block h3 {
+    margin: 0 0 12px; font-family: var(--f-display); font-weight: 400;
+    font-size: clamp(22px, 2.4vw, 28px); line-height: 1.12;
+    letter-spacing: -0.01em; color: var(--text-primary);
+  }
+  .guide-block h3 em { font-style: italic; color: var(--signal-jade); }
+  .guide-block p {
+    margin: 0 0 10px; font-family: var(--f-body);
+    font-size: 14.5px; line-height: 1.65; color: var(--text-dim);
+  }
+  .guide-block p em { font-style: italic; color: var(--jade-bright); }
+  .guide-block strong { color: var(--signal-jade); font-weight: 600; }
+  .guide-list { list-style: none; padding: 0; margin: 16px 0 0; display: flex; flex-direction: column; gap: 0; }
+  .guide-list li {
+    position: relative; padding: 10px 0 10px 22px;
+    border-bottom: 1px dashed var(--line-soft);
+    font-size: 13.5px; line-height: 1.5; color: var(--text-primary);
+  }
+  .guide-list li:last-child { border-bottom: none; }
+  .guide-list li::before {
+    content: "§"; position: absolute; left: 0; top: 10px;
+    color: var(--signal-jade); font-family: var(--f-mono); font-weight: 700;
+  }
+
+  /* ----- right: form ----- */
+  .form-col { min-width: 0; }
+  .submit-form {
+    background: rgba(34, 26, 56, 0.6);
+    border: 1px solid var(--line-mid);
+    border-radius: 2px;
+    padding: clamp(24px, 3vw, 36px);
+  }
+  .form-intro {
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--jade);
+    margin: 0 0 26px; padding-bottom: 18px; border-bottom: 1px solid var(--line-mid);
+  }
+  .form-group { margin-bottom: 24px; }
+  .form-label {
+    display: block; font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--signal-jade); margin-bottom: 8px;
+  }
+  .form-label .optional {
+    color: var(--text-faint); font-weight: 400;
+    text-transform: none; letter-spacing: 0.06em; margin-left: 8px;
+  }
+  .form-hint {
+    font-family: var(--f-body); font-size: 12.5px; font-style: italic;
+    color: var(--text-secondary); margin: 0 0 9px; line-height: 1.5;
+  }
+  .form-input, .form-textarea, .form-select {
+    width: 100%; background: rgba(20, 14, 34, 0.5);
+    border: 1px solid var(--line-mid); border-radius: 2px;
+    color: var(--text-primary); font-family: var(--f-body);
+    font-size: 15px; padding: 12px 14px; transition: border-color 200ms;
+  }
+  .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: var(--green); }
+  .form-input::placeholder, .form-textarea::placeholder { color: var(--text-faint); }
+  .form-textarea { min-height: 150px; resize: vertical; line-height: 1.55; }
+  .form-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
+  .form-select option { background: var(--bg-card); color: var(--text-primary); }
+
+  .form-radio { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0; cursor: pointer; }
+  .form-radio input { margin-top: 3px; flex-shrink: 0; accent-color: var(--signal-jade); }
+  .form-radio span { font-family: var(--f-body); font-size: 13.5px; line-height: 1.5; color: var(--text-dim); }
+  .form-radio .em { color: var(--signal-jade); font-style: italic; }
+
+  .privacy-note {
+    margin-top: 6px; padding: 16px 18px;
+    background: var(--moss-soft); border-left: 3px solid var(--signal-jade);
+    font-family: var(--f-body); font-size: 12.5px; color: var(--text-dim); line-height: 1.6;
+  }
+  .privacy-note strong { color: var(--signal-jade); font-weight: 600; }
+
+  .form-actions { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line-mid); display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn-primary, .btn-secondary {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 46px; padding: 0 22px; border-radius: 2px;
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; text-decoration: none; cursor: pointer;
+    transition: transform 180ms, background 180ms, color 180ms;
+  }
+  .btn-primary { background: var(--signal-jade); color: var(--bg-deep); border: 1px solid var(--signal-jade); font-weight: 600; }
+  .btn-secondary { background: transparent; color: var(--text-secondary); border: 1px solid var(--line-mid); }
+  .btn-primary:hover, .btn-secondary:hover { transform: translateY(-2px); }
+  .btn-secondary:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+  .form-success { display: none; background: var(--moss-soft); border-left: 4px solid var(--green); border-radius: 2px; padding: 28px; }
+  .form-success.show { display: block; }
+  .form-success-title { font-family: var(--f-display); font-size: 24px; color: var(--text-primary); margin-bottom: 10px; }
+  .form-success-body { font-family: var(--f-body); font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+  .form-success-body em { color: var(--jade-bright); font-style: italic; }
+
+  /* ---------- nav-back ---------- */
+  .nav-back {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    margin-top: 56px; padding-top: 26px; border-top: 1px solid var(--line-mid);
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .nav-back a { color: var(--text-secondary); text-decoration: none; transition: color 180ms; }
+  .nav-back a:hover { color: var(--jade); }
+
+  @media (max-width: 920px) {
+    .merge-layout { grid-template-columns: 1fr; }
+    .guide-col { order: 2; }      /* form first on mobile, guidelines below */
+    .form-col { order: 1; }
+  }
+</style>
+</head>
+<body data-page="contribute" data-lang="en">
+
+<div class="meta-bar">
+  <div class="meta-bar-left">
+    <a href="index.html" data-i18n="meta.back">← Back to archive</a>
+    <span class="dot"></span>
+    <span data-i18n="meta.section">§ Contribute · 参与 · ร่วมสมทบ</span>
+  </div>
+  <div class="meta-bar-right">
+    <span class="meta-bar-coord" data-i18n="meta.coord">Open archive · no login required</span>
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button class="lang-btn active" data-lang="en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中</button>
+      <button class="lang-btn" data-lang="th" onclick="setLang('th')">ไทย</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="ditherCanvas" class="dither-canvas"></canvas>
+
+<header class="page-hero">
+  <div class="wrap">
+    <div class="eyebrow"><span data-i18n="hero.eyebrow">About contributing</span></div>
+    <h1 class="page-title" data-i18n="hero.title">Always incomplete,<br>always <em>listening</em>.<span class="cn" data-i18n="hero.cn">始终未完成，始终在倾听</span></h1>
+    <p class="page-lead" data-i18n="hero.slogan">The archive is always incomplete and always taking in. <strong>Every site has people who saw something the archive does not yet name.</strong> If you are — or you know — any of them, <em>we are always listening for your stories.</em></p>
+  </div>
+</header>
+
+<section class="merge-section">
+  <div class="wrap">
+    <div class="merge-layout">
+
+      <!-- ===================== LEFT · GUIDELINES (§ 02.1–02.4) ===================== -->
+      <div class="guide-col">
+
+        <div class="guide-block">
+          <div class="guide-label" data-i18n="g1.label">§ 02.1 · What this archive is</div>
+          <h3 data-i18n="g1.title">Editorial, not <em>neutral</em>.</h3>
+          <p data-i18n="g1.body1">This archive takes the side of the displaced. It draws on news reports (Bangkok Post, The Guardian, Khaosod, New Mandala), legal filings, academic articles, and community testimony. <em>Composite personas are marked as such.</em> Public-figure activists are named directly because they have chosen to be public.</p>
+          <p data-i18n="g1.body2">We are not a journalism outlet. We are not a court. We are a public reading room for a pattern that PMCU's communications, by design, do not name.</p>
+        </div>
+
+        <div class="guide-block">
+          <div class="guide-label" data-i18n="g2.label">§ 02.2 · What we need</div>
+          <h3 data-i18n="g2.title">The <em>gaps</em> are the work.</h3>
+          <p data-i18n="g2.body">If you have any of the following, we would be grateful:</p>
+          <ul class="guide-list">
+            <li data-i18n="g2.l1">Photographs of the corridor before 2017 — Sam Yan market, shophouses, the original shrine surroundings</li>
+            <li data-i18n="g2.l2">Lease documents, eviction letters, court summonses (with names redacted if you wish)</li>
+            <li data-i18n="g2.l3">Family or community photographs of festivals at the shrine</li>
+            <li data-i18n="g2.l4">Architectural drawings, plans, or maps related to Block 33</li>
+            <li data-i18n="g2.l5">First-hand testimony of being displaced or of resisting displacement</li>
+            <li data-i18n="g2.l6">Translations between English, Thai, Mandarin, and Teochew of any of the above</li>
+          </ul>
+        </div>
+
+        <div class="guide-block">
+          <div class="guide-label" data-i18n="g3.label">§ 02.3 · How we handle material</div>
+          <h3 data-i18n="g3.title">Permission first. <em>Always</em>.</h3>
+          <p data-i18n="g3.body1">Visual material is more permission-sensitive than text. <em>We will not publish anything without explicit clearance from contributors.</em> Where active defendants are involved, we consult their legal counsel first. Sensitive material can be kept in private archive — referenced but not displayed.</p>
+          <p data-i18n="g3.body2">Anonymous contributions are welcome. We do not require real names, contact information, or institutional affiliation. We only ask that you tell us, in your own words, what the material is and why it matters.</p>
+        </div>
+
+        <div class="guide-block">
+          <div class="guide-label" data-i18n="g4.label">§ 02.4 · What we do not do</div>
+          <h3 data-i18n="g4.title">We do not name <em>private</em> individuals.</h3>
+          <p data-i18n="g4.body1">We do not name caretakers, market vendors, or family members who have not chosen to be public. We do not publish photographs of identifiable individuals without their consent. We do not share contact information.</p>
+          <p data-i18n="g4.body2">We do name <strong>institutions</strong>, <strong>their senior decision-makers</strong>, and <strong>public-figure activists who have chosen to be public</strong>. That distinction is what makes this an archive rather than a directory.</p>
+        </div>
+
+      </div>
+
+      <!-- ===================== RIGHT · INTAKE FORM ===================== -->
+      <div class="form-col">
+
+        <form class="submit-form" id="submitForm">
+          <p class="form-intro" data-i18n="form.intro">No login · no real name required · you decide what appears</p>
+
+          <div class="form-group">
+            <label class="form-label" for="kind" data-i18n="f.kind.label">§ 01 · What kind of material?</label>
+            <p class="form-hint" data-i18n="f.kind.hint">Help us know what to expect. You can change this later.</p>
+            <select class="form-select" id="kind" name="kind">
+              <option value="testimony" data-i18n="f.kind.o1">Personal testimony · I saw / I lived through this</option>
+              <option value="photograph" data-i18n="f.kind.o2">Photograph · old or recent</option>
+              <option value="document" data-i18n="f.kind.o3">Document · letter, lease, court paper</option>
+              <option value="drawing" data-i18n="f.kind.o4">Drawing or plan</option>
+              <option value="link" data-i18n="f.kind.o5">Link · article, video, archive elsewhere</option>
+              <option value="other" data-i18n="f.kind.o6">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="site" data-i18n="f.site.label">§ 02 · Which site does it relate to?</label>
+            <p class="form-hint" data-i18n="f.site.hint">If your material spans more than one site, tell us in the description below.</p>
+            <select class="form-select" id="site" name="site">
+              <option value="S05">S05 · Chao Mae Thapthim Shrine</option>
+              <option value="S01">S01 · Scala Theatre</option>
+              <option value="S04">S04 · Samyan Mitrtown / former Sam Yan retail</option>
+              <option value="S09">S09 · Centenary Park</option>
+              <option value="S10">S10 · Suanluang shophouses</option>
+              <option value="S08">S08 · Block 33 parcel</option>
+              <option value="S03">S03 · Chamchuri Square</option>
+              <option value="S06">S06 · I-House</option>
+              <option value="S07">S07 · Suan Luang School</option>
+              <option value="other" data-i18n="f.site.other">Something not on the list</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="description" data-i18n="f.desc.label">§ 03 · Tell us what it is</label>
+            <p class="form-hint" data-i18n="f.desc.hint">In your own words. Any length. Any language (English, Thai, Mandarin, Teochew all welcome — we translate).</p>
+            <textarea class="form-textarea" id="description" name="description" data-i18n-ph="f.desc.ph" placeholder="What is this material? When and where was it created? Why does it matter?"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="contact">§ 04 · <span data-i18n="f.contact.label">Contact</span><span class="optional" data-i18n="f.contact.opt">— optional</span></label>
+            <p class="form-hint" data-i18n="f.contact.hint">Email, Signal, or whatever you prefer. Leave blank if you would rather stay anonymous; we will treat that as final.</p>
+            <input class="form-input" type="text" id="contact" name="contact" data-i18n-ph="f.contact.ph" placeholder="Optional · how to reach you (or leave blank)">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="f.vis.label">§ 05 · How public do you want this?</label>
+            <p class="form-hint" data-i18n="f.vis.hint">You can change this later. We default to the most cautious option.</p>
+            <label class="form-radio">
+              <input type="radio" name="visibility" value="private" checked>
+              <span data-i18n="f.vis.private">Keep in <span class="em">private</span> archive only. Reference but do not display.</span>
+            </label>
+            <label class="form-radio">
+              <input type="radio" name="visibility" value="public-anon">
+              <span data-i18n="f.vis.anon">Make it <span class="em">public, anonymously</span>. No contributor attribution.</span>
+            </label>
+            <label class="form-radio">
+              <input type="radio" name="visibility" value="public-named">
+              <span data-i18n="f.vis.named">Make it <span class="em">public</span>, and you can credit me by name or handle.</span>
+            </label>
+          </div>
+
+          <div class="privacy-note" data-i18n="f.privacy"><strong>What happens next:</strong> A volunteer will read your submission within two weeks and reply (if you left contact). Nothing is published until you confirm permission. <strong>If you change your mind later, write to us and we will remove the material.</strong></div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" data-i18n="f.send">Send submission</button>
+          </div>
+        </form>
+
+        <div class="form-success" id="formSuccess">
+          <div class="form-success-title" data-i18n="f.success.title">Thank you — your submission has arrived.</div>
+          <div class="form-success-body" data-i18n="f.success.body">A volunteer will read it within two weeks and (if you left contact) reply directly. Nothing is published until you confirm permission. <em>You can write to us at any time to withdraw the material.</em></div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="nav-back">
+      <a href="index.html" data-i18n="meta.back">← Back to archive</a>
+      <a href="persona.html" data-i18n="nav.persona">→ Walk a path first</a>
+    </div>
+  </div>
+</section>
+
+<script src="dither.js"></script>
+<script>
+/* ============================================================
+   i18n dictionary — EN / 中文 / ไทย
+   Thai translations should be reviewed by a native speaker
+   before publication.
+   ============================================================ */
+const I18N = {
+  en: {
+    "meta.back": "← Back to archive",
+    "meta.section": "§ Contribute",
+    "meta.coord": "Open archive · no login required",
+    "hero.eyebrow": "About contributing",
+    "hero.title": "Always incomplete,<br>always <em>listening</em>.<span class='cn'></span>",
+    "hero.cn": "",
+    "hero.slogan": "The archive is always incomplete and always taking in. <strong>Every site has people who saw something the archive does not yet name.</strong> If you are — or you know — any of them, <em>we are always listening for your stories.</em>",
+    "g1.label": "§ 02.1 · What this archive is",
+    "g1.title": "Editorial, not <em>neutral</em>.",
+    "g1.body1": "This archive takes the side of the displaced. It draws on news reports (Bangkok Post, The Guardian, Khaosod, New Mandala), legal filings, academic articles, and community testimony. <em>Composite personas are marked as such.</em> Public-figure activists are named directly because they have chosen to be public.",
+    "g1.body2": "We are not a journalism outlet. We are not a court. We are a public reading room for a pattern that PMCU's communications, by design, do not name.",
+    "g2.label": "§ 02.2 · What we need",
+    "g2.title": "The <em>gaps</em> are the work.",
+    "g2.body": "If you have any of the following, we would be grateful:",
+    "g2.l1": "Photographs of the corridor before 2017 — Sam Yan market, shophouses, the original shrine surroundings",
+    "g2.l2": "Lease documents, eviction letters, court summonses (with names redacted if you wish)",
+    "g2.l3": "Family or community photographs of festivals at the shrine",
+    "g2.l4": "Architectural drawings, plans, or maps related to Block 33",
+    "g2.l5": "First-hand testimony of being displaced or of resisting displacement",
+    "g2.l6": "Translations between English, Thai, Mandarin, and Teochew of any of the above",
+    "g3.label": "§ 02.3 · How we handle material",
+    "g3.title": "Permission first. <em>Always</em>.",
+    "g3.body1": "Visual material is more permission-sensitive than text. <em>We will not publish anything without explicit clearance from contributors.</em> Where active defendants are involved, we consult their legal counsel first. Sensitive material can be kept in private archive — referenced but not displayed.",
+    "g3.body2": "Anonymous contributions are welcome. We do not require real names, contact information, or institutional affiliation. We only ask that you tell us, in your own words, what the material is and why it matters.",
+    "g4.label": "§ 02.4 · What we do not do",
+    "g4.title": "We do not name <em>private</em> individuals.",
+    "g4.body1": "We do not name caretakers, market vendors, or family members who have not chosen to be public. We do not publish photographs of identifiable individuals without their consent. We do not share contact information.",
+    "g4.body2": "We do name <strong>institutions</strong>, <strong>their senior decision-makers</strong>, and <strong>public-figure activists who have chosen to be public</strong>. That distinction is what makes this an archive rather than a directory.",
+    "form.intro": "No login · no real name required · you decide what appears",
+    "f.kind.label": "§ 01 · What kind of material?",
+    "f.kind.hint": "Help us know what to expect. You can change this later.",
+    "f.kind.o1": "Personal testimony · I saw / I lived through this",
+    "f.kind.o2": "Photograph · old or recent",
+    "f.kind.o3": "Document · letter, lease, court paper",
+    "f.kind.o4": "Drawing or plan",
+    "f.kind.o5": "Link · article, video, archive elsewhere",
+    "f.kind.o6": "Other",
+    "f.site.label": "§ 02 · Which site does it relate to?",
+    "f.site.hint": "If your material spans more than one site, tell us in the description below.",
+    "f.site.other": "Something not on the list",
+    "f.desc.label": "§ 03 · Tell us what it is",
+    "f.desc.hint": "In your own words. Any length. Any language (English, Thai, Mandarin, Teochew all welcome — we translate).",
+    "f.desc.ph": "What is this material? When and where was it created? Why does it matter?",
+    "f.contact.label": "Contact",
+    "f.contact.opt": "— optional",
+    "f.contact.hint": "Email, Signal, or whatever you prefer. Leave blank if you would rather stay anonymous; we will treat that as final.",
+    "f.contact.ph": "Optional · how to reach you (or leave blank)",
+    "f.vis.label": "§ 05 · How public do you want this?",
+    "f.vis.hint": "You can change this later. We default to the most cautious option.",
+    "f.vis.private": "Keep in <span class='em'>private</span> archive only. Reference but do not display.",
+    "f.vis.anon": "Make it <span class='em'>public, anonymously</span>. No contributor attribution.",
+    "f.vis.named": "Make it <span class='em'>public</span>, and you can credit me by name or handle.",
+    "f.privacy": "<strong>What happens next:</strong> A volunteer will read your submission within two weeks and reply (if you left contact). Nothing is published until you confirm permission. <strong>If you change your mind later, write to us and we will remove the material.</strong>",
+    "f.send": "Send submission",
+    "f.success.title": "Thank you — your submission has arrived.",
+    "f.success.body": "A volunteer will read it within two weeks and (if you left contact) reply directly. Nothing is published until you confirm permission. <em>You can write to us at any time to withdraw the material.</em>",
+    "nav.persona": "→ Walk a path first"
+  },
+
+  zh: {
+    "meta.back": "← 返回档案",
+    "meta.section": "§ 参与",
+    "meta.coord": "开放档案 · 无需登录",
+    "hero.eyebrow": "关于参与",
+    "hero.title": "始终未完成，<br>始终<em>在倾听</em>。",
+    "hero.cn": "",
+    "hero.slogan": "这个档案始终未完成，也始终在接收。<strong>每一处场地，都有人见过档案尚未命名的事物。</strong>如果你是他们中的一个，或你认识他们，<em>我们始终在倾听你们的故事。</em>",
+    "g1.label": "§ 02.1 · 这是一个怎样的档案",
+    "g1.title": "有立场，而非<em>中立</em>。",
+    "g1.body1": "这个档案站在被驱离者一边。它取材于新闻报道（Bangkok Post、The Guardian、Khaosod、New Mandala）、法律文书、学术文章与社区证词。<em>合成人物会被明确标注。</em>公众人物活动家被直接具名，因为他们已选择公开身份。",
+    "g1.body2": "我们不是新闻机构，也不是法庭。我们是一间公共阅读室，用以指认一种 PMCU 的官方叙事刻意不去命名的模式。",
+    "g2.label": "§ 02.2 · 我们需要什么",
+    "g2.title": "<em>空白</em>之处，正是工作所在。",
+    "g2.body": "若你拥有以下任何材料，我们将不胜感激：",
+    "g2.l1": "2017 年之前这条街区的照片——三养市场、店屋、神庙原址周边",
+    "g2.l2": "租约文件、驱逐通知、法院传票（如你愿意，可隐去姓名）",
+    "g2.l3": "神庙节庆的家庭或社区照片",
+    "g2.l4": "与 Block 33 地块相关的建筑图纸、平面或地图",
+    "g2.l5": "亲历驱离、或抵抗驱离的第一手证词",
+    "g2.l6": "上述任何材料在英文、泰文、华语、潮州话之间的翻译",
+    "g3.label": "§ 02.3 · 我们如何处理材料",
+    "g3.title": "永远，<em>先征得许可</em>。",
+    "g3.body1": "影像材料比文字更涉及授权敏感。<em>未经贡献者明确许可，我们不会发布任何内容。</em>若涉及仍在诉讼中的当事人，我们会先咨询其法律顾问。敏感材料可仅存于私人档案——可供参考，但不公开展示。",
+    "g3.body2": "我们欢迎匿名贡献。我们不要求真实姓名、联系方式或机构身份。我们只请你用自己的话告诉我们：这是什么材料，以及它为何重要。",
+    "g4.label": "§ 02.4 · 我们不做什么",
+    "g4.title": "我们不会具名<em>私人</em>个体。",
+    "g4.body1": "我们不会具名那些未选择公开身份的庙祝、市场摊贩或家庭成员。未经本人同意，我们不会发布可辨认个体的照片。我们不会分享联系方式。",
+    "g4.body2": "我们会具名<strong>机构</strong>、<strong>其高层决策者</strong>，以及<strong>已选择公开身份的公众人物活动家</strong>。正是这一区分，使它成为一份档案，而非一本通讯录。",
+    "form.intro": "无需登录 · 无需真实姓名 · 由你决定哪些内容公开",
+    "f.kind.label": "§ 01 · 这是什么类型的材料？",
+    "f.kind.hint": "让我们了解大致情况。稍后仍可更改。",
+    "f.kind.o1": "个人证词 · 我亲眼所见 / 我亲身经历",
+    "f.kind.o2": "照片 · 旧的或近期的",
+    "f.kind.o3": "文件 · 信件、租约、法院文书",
+    "f.kind.o4": "图纸或平面图",
+    "f.kind.o5": "链接 · 文章、视频、其他档案",
+    "f.kind.o6": "其他",
+    "f.site.label": "§ 02 · 它与哪一处场地相关？",
+    "f.site.hint": "若你的材料涉及多处场地，请在下方描述中说明。",
+    "f.site.other": "不在列表中的其他场地",
+    "f.desc.label": "§ 03 · 告诉我们这是什么",
+    "f.desc.hint": "用你自己的话，长短不限。任何语言皆可（英文、泰文、华语、潮州话都欢迎——我们会翻译）。",
+    "f.desc.ph": "这是什么材料？它在何时、何地产生？它为何重要？",
+    "f.contact.label": "联系方式",
+    "f.contact.opt": "— 选填",
+    "f.contact.hint": "电邮、Signal，或任何你方便的方式。若你希望保持匿名，可留空；我们将视其为最终决定。",
+    "f.contact.ph": "选填 · 如何联系你（或留空）",
+    "f.vis.label": "§ 05 · 你希望它公开到什么程度？",
+    "f.vis.hint": "稍后仍可更改。我们默认采用最谨慎的选项。",
+    "f.vis.private": "仅保留于<span class='em'>私人</span>档案。可参考，但不展示。",
+    "f.vis.anon": "<span class='em'>匿名公开</span>。不署任何贡献者名义。",
+    "f.vis.named": "<span class='em'>公开</span>，并且可以用我的姓名或代号署名。",
+    "f.privacy": "<strong>接下来会发生什么：</strong>志愿者将在两周内阅读你的投稿，并（若你留有联系方式）回复你。在你确认许可之前，不会发布任何内容。<strong>若你之后改变主意，写信告诉我们，我们会移除该材料。</strong>",
+    "f.send": "发送投稿",
+    "f.success.title": "谢谢你——你的投稿已经送达。",
+    "f.success.body": "志愿者将在两周内阅读，并（若你留有联系方式）直接回复。在你确认许可之前，不会发布任何内容。<em>你可以随时写信给我们，撤回该材料。</em>",
+    "nav.persona": "→ 先走一条路径"
+  },
+
+  th: {
+    "meta.back": "← กลับสู่คลังจดหมายเหตุ",
+    "meta.section": "§ ร่วมสมทบ",
+    "meta.coord": "คลังเปิด · ไม่ต้องเข้าสู่ระบบ",
+    "hero.eyebrow": "เกี่ยวกับการร่วมสมทบ",
+    "hero.title": "ยังไม่เสร็จสมบูรณ์เสมอ<br>และ<em>รับฟัง</em>เสมอ",
+    "hero.cn": "",
+    "hero.slogan": "คลังจดหมายเหตุนี้ยังไม่เสร็จสมบูรณ์เสมอ และยังคงเปิดรับเสมอ <strong>ทุกพื้นที่ล้วนมีผู้คนที่ได้เห็นสิ่งที่คลังนี้ยังไม่ได้บันทึกชื่อไว้</strong> หากคุณคือหนึ่งในนั้น หรือคุณรู้จักพวกเขา <em>เรายินดีรับฟังเรื่องราวของคุณเสมอ</em>",
+    "g1.label": "§ 02.1 · คลังนี้คืออะไร",
+    "g1.title": "มีจุดยืน ไม่ใช่<em>เป็นกลาง</em>",
+    "g1.body1": "คลังนี้ยืนอยู่ข้างผู้ถูกขับไล่ออกจากพื้นที่ โดยอ้างอิงจากรายงานข่าว (Bangkok Post, The Guardian, ข่าวสด, New Mandala) เอกสารทางกฎหมาย บทความวิชาการ และคำบอกเล่าของชุมชน <em>ตัวละครที่ประกอบขึ้นจากหลายแหล่งจะถูกระบุไว้อย่างชัดเจน</em> นักกิจกรรมที่เป็นบุคคลสาธารณะถูกระบุชื่อโดยตรง เพราะพวกเขาเลือกที่จะเปิดเผยตัวเอง",
+    "g1.body2": "เราไม่ใช่สำนักข่าว และไม่ใช่ศาล เราคือห้องอ่านสาธารณะสำหรับรูปแบบที่การสื่อสารของ PMCU จงใจไม่เอ่ยถึง",
+    "g2.label": "§ 02.2 · สิ่งที่เราต้องการ",
+    "g2.title": "<em>ช่องว่าง</em>คืองานที่ต้องทำ",
+    "g2.body": "หากคุณมีสิ่งใดต่อไปนี้ เราจะขอบคุณอย่างยิ่ง:",
+    "g2.l1": "ภาพถ่ายของย่านนี้ก่อนปี 2017 — ตลาดสามย่าน ตึกแถว และบริเวณรอบศาลเจ้าเดิม",
+    "g2.l2": "เอกสารสัญญาเช่า หนังสือขับไล่ หมายศาล (จะปิดบังชื่อก็ได้หากต้องการ)",
+    "g2.l3": "ภาพถ่ายของครอบครัวหรือชุมชนในงานเทศกาลที่ศาลเจ้า",
+    "g2.l4": "แบบสถาปัตยกรรม ผังพื้น หรือแผนที่ที่เกี่ยวข้องกับแปลง Block 33",
+    "g2.l5": "คำบอกเล่าจากประสบการณ์ตรงของการถูกขับไล่ หรือการต่อต้านการขับไล่",
+    "g2.l6": "การแปลสิ่งข้างต้นระหว่างภาษาอังกฤษ ไทย จีนกลาง และแต้จิ๋ว",
+    "g3.label": "§ 02.3 · เราจัดการกับวัสดุอย่างไร",
+    "g3.title": "ขออนุญาตก่อน <em>เสมอ</em>",
+    "g3.body1": "วัสดุที่เป็นภาพมีความอ่อนไหวเรื่องการอนุญาตมากกว่าข้อความ <em>เราจะไม่เผยแพร่สิ่งใดโดยไม่ได้รับความยินยอมอย่างชัดเจนจากผู้มอบ</em> ในกรณีที่เกี่ยวข้องกับจำเลยในคดีที่ยังดำเนินอยู่ เราจะปรึกษาทนายความของพวกเขาก่อน วัสดุที่อ่อนไหวสามารถเก็บไว้ในคลังส่วนตัวได้ — ใช้อ้างอิงแต่ไม่นำมาแสดง",
+    "g3.body2": "เรายินดีรับการมอบแบบไม่ระบุตัวตน เราไม่ต้องการชื่อจริง ข้อมูลติดต่อ หรือสังกัดสถาบัน เราเพียงขอให้คุณบอกเราด้วยคำพูดของคุณเองว่าวัสดุนั้นคืออะไร และเหตุใดจึงสำคัญ",
+    "g4.label": "§ 02.4 · สิ่งที่เราไม่ทำ",
+    "g4.title": "เราไม่ระบุชื่อ<em>บุคคลส่วนตัว</em>",
+    "g4.body1": "เราไม่ระบุชื่อผู้ดูแลศาลเจ้า พ่อค้าแม่ค้าในตลาด หรือสมาชิกครอบครัวที่ไม่ได้เลือกจะเปิดเผยตัว เราไม่เผยแพร่ภาพถ่ายของบุคคลที่ระบุตัวได้โดยไม่ได้รับความยินยอม และเราไม่เปิดเผยข้อมูลติดต่อ",
+    "g4.body2": "เราระบุชื่อ<strong>สถาบัน</strong> <strong>ผู้บริหารระดับสูงผู้ตัดสินใจ</strong> และ<strong>นักกิจกรรมที่เป็นบุคคลสาธารณะซึ่งเลือกจะเปิดเผยตัว</strong> ความแตกต่างนี้เองที่ทำให้สิ่งนี้เป็นคลังจดหมายเหตุ ไม่ใช่สมุดรายชื่อ",
+    "form.intro": "ไม่ต้องเข้าสู่ระบบ · ไม่ต้องใช้ชื่อจริง · คุณเป็นผู้กำหนดว่าจะให้สิ่งใดปรากฏ",
+    "f.kind.label": "§ 01 · เป็นวัสดุประเภทใด?",
+    "f.kind.hint": "ช่วยให้เรารู้ว่าจะได้รับอะไร เปลี่ยนภายหลังได้",
+    "f.kind.o1": "คำบอกเล่าส่วนตัว · ฉันได้เห็น / ฉันได้ผ่านเหตุการณ์นี้",
+    "f.kind.o2": "ภาพถ่าย · เก่าหรือใหม่",
+    "f.kind.o3": "เอกสาร · จดหมาย สัญญาเช่า เอกสารศาล",
+    "f.kind.o4": "ภาพวาดหรือแบบแปลน",
+    "f.kind.o5": "ลิงก์ · บทความ วิดีโอ คลังที่อื่น",
+    "f.kind.o6": "อื่น ๆ",
+    "f.site.label": "§ 02 · เกี่ยวข้องกับพื้นที่ใด?",
+    "f.site.hint": "หากวัสดุของคุณครอบคลุมมากกว่าหนึ่งพื้นที่ โปรดบอกเราในช่องคำอธิบายด้านล่าง",
+    "f.site.other": "พื้นที่อื่นที่ไม่อยู่ในรายการ",
+    "f.desc.label": "§ 03 · บอกเราว่ามันคืออะไร",
+    "f.desc.hint": "ด้วยคำพูดของคุณเอง ความยาวเท่าใดก็ได้ ภาษาใดก็ได้ (อังกฤษ ไทย จีนกลาง แต้จิ๋ว ยินดีทั้งหมด — เราแปลให้)",
+    "f.desc.ph": "วัสดุนี้คืออะไร? สร้างขึ้นเมื่อใดและที่ไหน? เหตุใดจึงสำคัญ?",
+    "f.contact.label": "ช่องทางติดต่อ",
+    "f.contact.opt": "— ไม่บังคับ",
+    "f.contact.hint": "อีเมล Signal หรือช่องทางใดก็ได้ที่คุณสะดวก เว้นว่างไว้หากต้องการไม่ระบุตัวตน เราจะถือเป็นที่สิ้นสุด",
+    "f.contact.ph": "ไม่บังคับ · วิธีติดต่อคุณ (หรือเว้นว่างไว้)",
+    "f.vis.label": "§ 05 · คุณต้องการให้เปิดเผยมากเพียงใด?",
+    "f.vis.hint": "เปลี่ยนภายหลังได้ เราตั้งค่าเริ่มต้นเป็นตัวเลือกที่ระมัดระวังที่สุด",
+    "f.vis.private": "เก็บไว้ในคลัง<span class='em'>ส่วนตัว</span>เท่านั้น ใช้อ้างอิงแต่ไม่แสดง",
+    "f.vis.anon": "เปิดเผย<span class='em'>แบบไม่ระบุตัวตน</span> ไม่ระบุชื่อผู้มอบ",
+    "f.vis.named": "<span class='em'>เปิดเผย</span> และให้เครดิตฉันด้วยชื่อหรือนามแฝงได้",
+    "f.privacy": "<strong>ขั้นตอนต่อไป:</strong> อาสาสมัครจะอ่านสิ่งที่คุณส่งภายในสองสัปดาห์ และตอบกลับ (หากคุณทิ้งช่องทางติดต่อไว้) จะไม่มีการเผยแพร่ใด ๆ จนกว่าคุณจะยืนยันการอนุญาต <strong>หากภายหลังคุณเปลี่ยนใจ เขียนมาบอกเรา แล้วเราจะนำวัสดุนั้นออก</strong>",
+    "f.send": "ส่งข้อมูล",
+    "f.success.title": "ขอบคุณ — ข้อมูลของคุณส่งถึงเราแล้ว",
+    "f.success.body": "อาสาสมัครจะอ่านภายในสองสัปดาห์ และ (หากคุณทิ้งช่องทางติดต่อไว้) จะตอบกลับโดยตรง จะไม่มีการเผยแพร่จนกว่าคุณจะยืนยันการอนุญาต <em>คุณเขียนมาเพื่อถอนวัสดุได้ทุกเมื่อ</em>",
+    "nav.persona": "→ ลองเดินตามเส้นทางก่อน"
+  }
+};
+
+function setLang(lang) {
+  if (!I18N[lang]) lang = "en";
+  const dict = I18N[lang];
+  document.body.dataset.lang = lang;
+  document.documentElement.lang = lang === "zh" ? "zh-Hans" : lang === "th" ? "th" : "en";
+
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const k = el.getAttribute("data-i18n");
+    if (dict[k] != null) el.innerHTML = dict[k];
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+    const k = el.getAttribute("data-i18n-ph");
+    if (dict[k] != null) el.setAttribute("placeholder", dict[k]);
+  });
+  document.querySelectorAll(".lang-btn").forEach(b =>
+    b.classList.toggle("active", b.dataset.lang === lang)
+  );
+}
+
+document.getElementById("submitForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  document.getElementById("submitForm").style.display = "none";
+  document.getElementById("formSuccess").classList.add("show");
+  window.scrollTo({ top: 200, behavior: "smooth" });
+});
+
+setLang("en");
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Duplicate of images/ (not referenced by any page) — kept on disk, excluded from git
+graph/
+
+# OS / filesystem junk
+.DS_Store
+.fuse_hidden*
+
+# Future: Cloudflare Pages Functions / Node deps, env secrets
+node_modules/
+.env
+.env.local
+.wrangler/

@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chula Powermap · Walk a Path</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chula-powermap.css">
+<style>
+  /* persona-specific only — page-level layouts not shared elsewhere */
+
+  /* SCREENS */
+  .screen { min-height: 100vh; padding: 100px 0 60px; display: none; animation: fadeIn 400ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* PICKER */
+  .picker-head { display: grid; grid-template-columns: 1fr; gap: 56px; align-items: end; margin-bottom: 48px; }
+  .picker-lead {
+    font-family: var(--f-display); font-weight: 350;
+    font-size: 18px; line-height: 1.55;
+    color: var(--text-dim); max-width: 480px;
+  }
+  .picker-lead strong { font-weight: 500; color: var(--signal-yellow); }
+  .picker-lead em { color: var(--green); font-style: italic; }
+
+  .portrait-pool {
+    margin-top: 18px; padding: 18px 0 32px;
+    position: relative;
+  }
+  .portrait-pool-meta {
+    display: flex; justify-content: space-between;
+    align-items: baseline; margin-bottom: 18px;
+    font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+  .portrait-pool-meta .label {
+    font-family: var(--f-display); font-size: 16px;
+    text-transform: none; letter-spacing: 0;
+    color: var(--text-primary); font-weight: 400;
+  }
+  .portrait-pool-meta .label em { color: var(--green); font-style: italic; }
+  .portrait-grid {
+    display: grid; grid-template-columns: repeat(24, 1fr); gap: 4px;
+    position: relative;
+  }
+  .portrait-cell {
+    aspect-ratio: 1; background: var(--bg-deep);
+    cursor: default; position: relative;
+    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), outline 100ms;
+  }
+  .portrait-cell canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+  .portrait-cell:hover { outline: 1px solid var(--line-mid); }
+  .portrait-cell.highlight { animation: highlight 280ms ease-out; }
+  @keyframes highlight {
+    0% { transform: scale(1); outline: 1.5px solid transparent; }
+    50% { transform: scale(1.5); outline: 2px solid var(--signal-yellow); }
+    100% { transform: scale(1); outline: 1.5px solid transparent; }
+  }
+  .portrait-cell.picked {
+    transform: scale(1.8); z-index: 10;
+    outline: 2px solid var(--signal-yellow);
+    box-shadow: 0 0 0 6px rgba(95, 184, 146, 0.22);
+  }
+
+  .pick-cta-bar {
+    margin-top: 34px; padding: 0;
+    background: transparent;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 28px; position: relative;
+    border-top: 1px solid var(--line-mid);
+    padding-top: 26px;
+  }
+  .pick-cta-text h4 { font-family: var(--f-display); font-weight: 400; font-size: 24px; margin-bottom: 6px; color: var(--text-primary); }
+  .pick-cta-text h4 em { font-style: italic; color: var(--signal-yellow); }
+  .pick-cta-text p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  .pick-cta-btn {
+    font-family: var(--f-mono); font-size: 12px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    background: rgba(95, 184, 146, 0.96); color: var(--bg-deep);
+    border: 1px solid rgba(243, 236, 255, 0.35);
+    padding: 18px 30px; cursor: pointer; font-weight: 700;
+    transition: transform 200ms, background 200ms, box-shadow 200ms;
+    white-space: nowrap; position: relative; z-index: 2;
+    box-shadow: 0 18px 48px rgba(12, 10, 20, 0.38);
+    pointer-events: auto;
+  }
+  .pick-cta-btn:hover { transform: translateY(-2px); background: #7dd1ab; }
+  .pick-cta-btn:disabled { opacity: 0.72; cursor: default; }
+
+  /* LANYARD overlay */
+  .lanyard-screen {
+    position: fixed; inset: 0; z-index: 100;
+    background: radial-gradient(ellipse 90% 70% at 50% 30%, #3a2a4f 0%, #1f1530 55%, #0c0814 100%);
+    display: none;
+  }
+  .lanyard-screen.active { display: flex; flex-direction: column; }
+  .lanyard-blackout {
+    position: fixed; inset: 0; z-index: 200; background: #000;
+    display: none;
+  }
+  .lanyard-blackout.active { display: block; animation: blackoutFade 400ms ease-in-out; }
+  @keyframes blackoutFade {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 1; }
+  }
+  .lanyard-body { flex: 1; display: flex; min-height: 0; }
+  .lanyard-stage { flex: 1 1 56%; position: relative; overflow: hidden; }
+  #lanyardCanvas { width: 100%; height: 100%; display: block; cursor: default; position: relative; z-index: 2; }
+  .lanyard-fallback-card {
+    position: absolute; left: 50%; top: 48%; z-index: 1;
+    width: min(42vw, 300px); padding: 22px 22px 26px;
+    background: #f3ecff; border: 1px solid rgba(42, 27, 61, 0.25);
+    border-radius: 14px; text-align: center;
+    box-shadow: 0 22px 56px rgba(0, 0, 0, 0.48);
+    transform: translate(-50%, -50%) rotate(-3deg);
+    opacity: 0; transition: opacity 240ms ease;
+    pointer-events: none;
+  }
+  /* lanyard string above the fallback card — reads as a hanging badge */
+  .lanyard-fallback-card::before {
+    content: ""; position: absolute; left: 50%; bottom: 100%;
+    width: 3px; height: 130px; transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(95, 184, 146, 0.12), #5fb892);
+  }
+  /* the fallback card only appears if the WebGL scene fails — then it drops + sways */
+  .lanyard-screen.webgl-failed .lanyard-fallback-card {
+    opacity: 1;
+    transform-origin: 50% -130px;
+    animation: fbDrop 1000ms cubic-bezier(0.2, 1.05, 0.3, 1) both,
+               fbSway 4.6s ease-in-out 1050ms infinite;
+  }
+  @keyframes fbDrop {
+    0%   { opacity: 0; transform: translate(-50%, -190%) rotate(-12deg); }
+    55%  { opacity: 1; transform: translate(-50%, -42%) rotate(7deg); }
+    78%  { transform: translate(-50%, -54%) rotate(-3deg); }
+    100% { opacity: 1; transform: translate(-50%, -50%) rotate(-2deg); }
+  }
+  @keyframes fbSway {
+    0%, 100% { transform: translate(-50%, -50%) rotate(-2.5deg); }
+    50%      { transform: translate(-50%, -50%) rotate(2.5deg); }
+  }
+  /* once the 3D card is live, hide the fallback (and stop its animation so opacity wins) */
+  .lanyard-screen.webgl-ready .lanyard-fallback-card { opacity: 0; animation: none; }
+  .lanyard-fallback-card .fallback-slot {
+    width: 62px; height: 12px; border-radius: 999px;
+    margin: 0 auto 20px; background: #2a1b3d;
+  }
+  .lanyard-fallback-card .fallback-photo {
+    aspect-ratio: 1 / 1; background: #3e3367 center 8% / 300% no-repeat;
+    border: 4px solid var(--signal-yellow);
+    margin-bottom: 20px;
+  }
+  .lanyard-fallback-card .fallback-name {
+    font-family: var(--f-display); font-style: italic;
+    font-size: clamp(34px, 4vw, 54px); line-height: 1;
+    color: #1a1428; margin-bottom: 8px;
+  }
+  .lanyard-fallback-card .fallback-role {
+    font-family: var(--f-cn); font-size: 15px; line-height: 1.35;
+    color: #6b577e;
+  }
+  .lanyard-draghint {
+    position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 5;
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-secondary); pointer-events: none;
+    opacity: 0; animation: fadeIn 600ms ease-out 1600ms forwards;
+  }
+
+  .lanyard-bgword { display: none; }
+  @keyframes bgwordIn { to { opacity: 1; } }
+  .lanyard-bgword .bgword-en {
+    font-family: var(--f-display); font-style: italic; font-weight: 350;
+    font-size: clamp(80px, 14vw, 200px); line-height: 0.95; letter-spacing: -0.04em;
+    color: rgba(168, 149, 199, 0.13);
+  }
+  .lanyard-bgword .bgword-cn {
+    font-family: var(--f-cn); font-weight: 400;
+    font-size: clamp(28px, 4vw, 56px); color: rgba(168, 149, 199, 0.10);
+    margin-top: 12px; letter-spacing: 0.3em;
+  }
+  .lanyard-bgword .bgword-th {
+    font-family: 'Noto Sans Thai', sans-serif; font-weight: 400;
+    font-size: clamp(14px, 1.4vw, 20px); color: rgba(168, 149, 199, 0.14);
+    margin-top: 18px; letter-spacing: 0.08em;
+  }
+
+  .lanyard-redraw {
+    position: absolute; top: 24px; right: 28px; z-index: 6;
+    width: 44px; height: 44px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+    transition: all 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity: 0; animation: fadeIn 600ms ease-out 1200ms forwards;
+  }
+  .lanyard-redraw:hover {
+    background: rgba(255, 255, 255, 0.12); color: var(--signal-yellow);
+    transform: rotate(-90deg);
+  }
+  .lanyard-redraw:active { transform: rotate(-180deg); }
+
+  .lanyard-meta-top {
+    position: absolute; top: 30px; left: 50%;
+    transform: translateX(-50%); z-index: 5;
+    font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--text-secondary);
+    opacity: 0; animation: fadeIn 600ms ease-out 800ms forwards;
+  }
+  /* DOSSIER · legible source of truth beside the swinging card */
+  .lanyard-dossier {
+    flex: 0 0 clamp(560px, 50vw, 820px); max-width: 58vw; align-self: stretch;
+    margin-right: clamp(18px, 3vw, 54px);
+    background: rgba(12, 10, 20, 0.34);
+    border-left: 4px solid var(--signal-yellow);
+    padding: clamp(28px, 4vh, 56px) clamp(26px, 3vw, 52px) 28px;
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+    display: flex; flex-direction: column; justify-content: center;
+    position: relative; overflow-y: auto;
+    opacity: 1; transform: none;
+  }
+  @keyframes dossierIn { to { opacity: 1; transform: translateX(0); } }
+  /* full standing figure beside the dossier text */
+  .dossier-figure {
+    position: absolute; left: 3%; bottom: 6%;
+    width: min(38%, 310px); height: 58%;
+    background-position: center bottom; background-repeat: no-repeat; background-size: contain;
+    filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.62));
+    opacity: 1;
+  }
+  @keyframes figIn { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
+  .dossier-main {
+    width: min(58%, 520px); margin-left: auto; min-width: 0;
+    display: flex; flex-direction: column; position: relative; z-index: 2;
+  }
+  .dossier-kicker {
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--signal-yellow); margin-bottom: 12px;
+  }
+  .dossier-name {
+    font-family: var(--f-display); font-style: italic; font-weight: 350;
+    font-size: clamp(38px, 3.6vw, 58px); line-height: 0.98;
+    color: var(--text-primary); margin-bottom: 6px;
+  }
+  .dossier-altname {
+    font-family: var(--f-cn); font-size: 15px; line-height: 1.4; color: var(--text-secondary);
+    margin-bottom: 18px; letter-spacing: 0.04em;
+  }
+  .dossier-rows {
+    display: grid; grid-template-columns: 92px 1fr; gap: 10px 20px;
+    margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--line-mid);
+  }
+  .dossier-rows .k {
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--text-secondary); padding-top: 3px;
+  }
+  .dossier-rows .v {
+    font-family: var(--f-display); font-size: clamp(14px, 1.05vw, 18px); line-height: 1.4; color: var(--text-primary);
+  }
+  .dossier-bio {
+    font-family: var(--f-display); font-style: italic; font-size: clamp(14px, 1.1vw, 19px);
+    line-height: 1.55; color: var(--text-dim); margin-bottom: 20px;
+  }
+  .dossier-foot {
+    font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-faint); margin-bottom: 18px;
+  }
+  .lanyard-step-in {
+    font-family: var(--f-mono); font-size: 12px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    background: var(--signal-yellow); color: var(--bg-deep);
+    border: none; padding: 16px 28px; cursor: pointer; font-weight: 700;
+    transition: all 200ms;
+  }
+  .lanyard-step-in:hover { transform: translateY(-2px); }
+  .lanyard-step-in::after { content: " →"; }
+  .lanyard-dossier .lanyard-step-in { width: 100%; text-align: center; }
+
+  /* lanyard stacks under the card on narrow screens */
+  @media (max-width: 900px) {
+    .lanyard-body { flex-direction: column; }
+    .lanyard-stage { flex: 1 1 auto; min-height: 40vh; }
+    .lanyard-dossier {
+      flex: 0 0 auto; max-width: none; align-self: stretch; margin: 0;
+      border-left: none; border-top: 4px solid var(--signal-yellow);
+      padding: 24px 20px 32px; overflow-y: auto;
+      flex-direction: row; gap: 18px;
+      animation-delay: 650ms;
+    }
+    .dossier-figure { flex: 0 0 34%; min-height: 220px; }
+    .dossier-name { font-size: 38px; }
+    .lanyard-draghint { bottom: 12px; }
+  }
+  @media (max-width: 560px) {
+    .lanyard-dossier { flex-direction: column; }
+    .dossier-figure { flex: 0 0 240px; min-height: 240px; background-position: center; }
+  }
+
+  /* ===== CAPSULE · gachapon draw ===== */
+  .capsule-screen {
+    position: fixed; inset: 0; z-index: 150; display: none;
+    background: radial-gradient(ellipse 90% 70% at 50% 35%, #3a2a4f 0%, #1f1530 55%, #0c0814 100%);
+  }
+  .capsule-screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .capsule-meta {
+    position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--text-secondary);
+  }
+  .capsule-stage { position: relative; width: 320px; height: 360px; display: flex; align-items: center; justify-content: center; }
+  .capsule { position: relative; width: 200px; height: 200px; will-change: transform; }
+  .capsule-shadow {
+    position: absolute; left: 50%; bottom: -34px; transform: translateX(-50%);
+    width: 150px; height: 26px; border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.5), transparent 70%);
+    filter: blur(2px);
+  }
+  .capsule-half { position: absolute; left: 0; width: 200px; height: 100px; transition: transform 600ms cubic-bezier(0.3, 0.8, 0.2, 1), opacity 600ms ease; }
+  .capsule-top {
+    top: 0; border-radius: 100px 100px 0 0;
+    background: linear-gradient(165deg, #ffe27a 0%, #f5c518 55%, #d9a400 100%);
+    box-shadow: inset 0 8px 16px rgba(255,255,255,0.55), inset 0 -8px 14px rgba(0,0,0,0.22);
+  }
+  .capsule-bottom {
+    bottom: 0; border-radius: 0 0 100px 100px;
+    background: linear-gradient(165deg, rgba(196,180,224,0.6) 0%, rgba(150,128,190,0.42) 60%, rgba(110,92,150,0.4) 100%);
+    box-shadow: inset 0 -8px 16px rgba(255,255,255,0.32), inset 0 8px 14px rgba(0,0,0,0.25);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  }
+  .capsule-seam {
+    position: absolute; left: -4px; top: 50%; transform: translateY(-50%);
+    width: 208px; height: 14px; border-radius: 7px;
+    background: linear-gradient(#fbe9a6, #c79a16);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3); z-index: 3;
+    transition: opacity 400ms ease;
+  }
+  .capsule-shine {
+    position: absolute; left: 34px; top: 24px; width: 46px; height: 70px;
+    border-radius: 50%; background: rgba(255,255,255,0.5); filter: blur(7px);
+    pointer-events: none; z-index: 4;
+  }
+  .capsule.drop { animation: capDrop 820ms cubic-bezier(0.2, 1.1, 0.3, 1) both; }
+  @keyframes capDrop {
+    0% { transform: translateY(-118vh) rotate(-22deg); }
+    62% { transform: translateY(14px) rotate(7deg); }
+    80% { transform: translateY(-6px) rotate(-3deg); }
+    100% { transform: translateY(0) rotate(0); }
+  }
+  .capsule.shake { animation: capShake 900ms ease-in-out; }
+  @keyframes capShake {
+    0%, 100% { transform: rotate(0) translateX(0); }
+    12% { transform: rotate(-13deg) translateX(-7px); }
+    26% { transform: rotate(11deg) translateX(7px); }
+    40% { transform: rotate(-15deg) translateX(-6px); }
+    54% { transform: rotate(13deg) translateX(6px); }
+    70% { transform: rotate(-9deg) translateX(-3px); }
+    85% { transform: rotate(6deg); }
+  }
+  .capsule.open .capsule-top { transform: translateY(-128px) rotate(-26deg); opacity: 0; }
+  .capsule.open .capsule-bottom { transform: translateY(86px) rotate(10deg); opacity: 0; }
+  .capsule.open .capsule-seam, .capsule.open .capsule-shine { opacity: 0; }
+
+  .capsule-flash {
+    position: absolute; inset: -40px; pointer-events: none; opacity: 0; z-index: 6;
+    background: radial-gradient(circle at 50% 50%, rgba(255,240,180,0.95), rgba(255,240,180,0) 62%);
+  }
+  .capsule-flash.go { animation: capFlash 620ms ease-out; }
+  @keyframes capFlash {
+    0% { opacity: 0; transform: scale(0.4); }
+    32% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.7); }
+  }
+
+  .capsule-card {
+    position: absolute; top: 50%; left: 50%; z-index: 7;
+    width: 168px; padding: 14px 14px 16px; border-radius: 10px;
+    background: #f3ecff; border: 1px solid rgba(42,27,61,0.25);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.5);
+    transform: translate(-50%, -50%) scale(0.5); opacity: 0; text-align: center;
+  }
+  .capsule-card.show { animation: capCardDrop 820ms cubic-bezier(0.2, 1.05, 0.3, 1) forwards; }
+  @keyframes capCardDrop {
+    0% { opacity: 0; transform: translate(-50%, -64%) scale(0.5) rotate(-8deg); }
+    45% { opacity: 1; }
+    100% { opacity: 1; transform: translate(-50%, calc(-50% + 64px)) scale(1) rotate(-3deg); }
+  }
+  .cap-card-clip { width: 46px; height: 8px; border-radius: 4px; background: #2a1b3d; margin: 0 auto 10px; }
+  .cap-card-photo {
+    width: 100%; aspect-ratio: 1 / 1; border-radius: 6px;
+    background-color: #2a1b3d; background-repeat: no-repeat;
+    background-size: 300%; background-position: 50% 8%;
+    border: 2px solid #5fb892;
+  }
+  .cap-card-name { font-family: var(--f-display); font-style: italic; font-size: 26px; color: #1a1428; margin-top: 10px; line-height: 1; }
+  .cap-card-alt { font-family: var(--f-cn); font-size: 13px; color: #6b577e; margin-top: 4px; }
+  .capsule-caption {
+    position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%);
+    font-family: var(--f-display); font-style: italic; font-size: 18px;
+    color: var(--text-dim); text-align: center; letter-spacing: 0.01em;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .capsule.drop, .capsule.shake, .capsule-card.show, .capsule-flash.go { animation-duration: 1ms; }
+  }
+
+  /* STORY */
+  .story-shell { max-width: 920px; margin: 0 auto; }
+  .story-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 28px;
+    font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-secondary); flex-wrap: wrap; gap: 12px;
+  }
+  .story-meta .you { background: var(--bg-deep); padding: 8px 12px; }
+  .story-meta .you .yellow { color: var(--signal-yellow); font-weight: 600; }
+  .story-progress { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 32px; }
+  .story-progress-step { height: 4px; background: var(--line-mid); position: relative; overflow: hidden; }
+  .story-progress-step.active { background: var(--green); }
+  .story-progress-step.current::after {
+    content: ""; position: absolute; inset: 0;
+    background: var(--signal-yellow);
+    animation: pulseProgress 1.6s ease-in-out infinite;
+  }
+  @keyframes pulseProgress { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  .story-card {
+    background: var(--bg-deep); color: var(--text-primary);
+    padding: 56px 56px 48px;
+    border: 1px solid var(--line-mid);
+    position: relative;
+    animation: storyIn 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes storyIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .story-card.exiting { animation: storyOut 240ms ease-in forwards; }
+  @keyframes storyOut { to { opacity: 0; transform: translateY(-20px); } }
+
+  .story-card-scene {
+    font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--signal-yellow); margin-bottom: 24px; font-weight: 600;
+  }
+  .story-card-prompt {
+    font-family: var(--f-display); font-weight: 350;
+    font-size: clamp(22px, 2.4vw, 30px);
+    line-height: 1.35; color: var(--text-primary); margin-bottom: 16px;
+    letter-spacing: -0.01em; min-height: 1.35em;
+  }
+  .story-card-prompt em { font-style: italic; color: var(--signal-yellow); }
+
+  /* typewriter cursor */
+  .typewriter-cursor {
+    display: inline-block;
+    width: 0.55em; height: 1em;
+    margin-left: 0.05em;
+    background: var(--signal-yellow);
+    vertical-align: -0.12em;
+    animation: blinkCursor 0.7s steps(1) infinite;
+  }
+  .typewriter-cursor.done { display: none; }
+  @keyframes blinkCursor {
+    0%, 50% { opacity: 1; }
+    50.01%, 100% { opacity: 0; }
+  }
+
+  .story-card-subprompt {
+    font-family: var(--f-display); font-style: italic;
+    font-size: 16px; line-height: 1.55;
+    color: var(--text-secondary); margin-bottom: 36px;
+    max-width: 640px;
+    opacity: 0; transition: opacity 500ms ease-out;
+  }
+  .story-card-subprompt.in { opacity: 1; }
+
+  .story-choices { display: flex; flex-direction: column; gap: 12px; }
+
+  /* B-form: click → tick → auto advance */
+  .story-choice {
+    background: transparent; color: var(--text-primary);
+    border: 1px solid var(--line-mid);
+    padding: 22px 26px; text-align: left;
+    cursor: pointer;
+    font-family: var(--f-display); font-size: 17px; line-height: 1.4;
+    transition: all 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    position: relative;
+    display: flex; align-items: center; gap: 18px;
+    width: 100%;
+    opacity: 0; transform: translateY(8px);
+  }
+  .story-choice.in { opacity: 1; transform: translateY(0); }
+  .story-choice:hover:not(:disabled) {
+    background: var(--green-soft);
+    border-color: var(--green);
+  }
+  .story-choice:hover:not(:disabled) .choice-box {
+    border-color: var(--green);
+  }
+  .story-choice:disabled { cursor: default; }
+  .story-choice.selected {
+    background: var(--signal-yellow-soft);
+    border-color: var(--signal-yellow);
+  }
+  .story-choice.dimmed { opacity: 0.3; pointer-events: none; }
+
+  .choice-box {
+    width: 22px; height: 22px;
+    border: 1.5px solid var(--text-secondary);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 180ms;
+    position: relative;
+  }
+  .choice-box::after {
+    content: "";
+    width: 12px; height: 12px;
+    background: var(--signal-yellow);
+    transform: scale(0);
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .story-choice.selected .choice-box { border-color: var(--signal-yellow); }
+  .story-choice.selected .choice-box::after { transform: scale(1); }
+  .choice-tick {
+    position: absolute; inset: 0; pointer-events: none;
+  }
+  .choice-tick svg { width: 100%; height: 100%; }
+  .choice-tick path {
+    fill: none; stroke: var(--bg-deep); stroke-width: 3;
+    stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 24; stroke-dashoffset: 24;
+    transition: stroke-dashoffset 280ms ease-out 60ms;
+  }
+  .story-choice.selected .choice-tick path { stroke-dashoffset: 0; }
+  .choice-letter {
+    font-family: var(--f-mono); font-size: 11px;
+    letter-spacing: 0.14em; font-weight: 600;
+    color: var(--text-secondary);
+    flex-shrink: 0; width: 18px;
+    transition: color 180ms;
+  }
+  .story-choice:hover .choice-letter, .story-choice.selected .choice-letter { color: var(--signal-yellow); }
+  .choice-text { flex: 1; }
+  .story-choice .choice-meta {
+    font-family: var(--f-mono); font-size: 9px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-faint); margin-top: 6px; display: block;
+  }
+
+  .story-back {
+    margin-top: 32px;
+    font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-secondary); opacity: 0.6;
+    cursor: pointer; background: none; border: none;
+    text-align: center; display: block;
+    margin-left: auto; margin-right: auto; padding: 8px;
+    transition: opacity 200ms, color 200ms;
+  }
+  .story-back:hover { opacity: 1; color: var(--green); }
+
+  /* OUTCOME */
+  .outcome-shell { max-width: 880px; margin: 0 auto; }
+  .outcome-tag {
+    font-family: var(--f-mono); font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--text-secondary); margin-bottom: 24px;
+    display: flex; gap: 14px; align-items: center;
+  }
+  .outcome-tag .num { background: var(--signal-yellow); color: var(--bg-deep); padding: 4px 9px; font-weight: 700; }
+  .outcome-title {
+    font-family: var(--f-display); font-weight: 350;
+    font-size: clamp(36px, 5vw, 60px);
+    line-height: 1.05; letter-spacing: -0.022em;
+    color: var(--text-primary); margin-bottom: 18px;
+  }
+  .outcome-title em { font-style: italic; color: var(--green); }
+  .outcome-lead {
+    font-family: var(--f-display); font-weight: 350;
+    font-size: 20px; line-height: 1.5;
+    color: var(--text-dim); margin-bottom: 40px; max-width: 680px;
+  }
+  .outcome-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-bottom: 36px; }
+  .outcome-block {
+    background: var(--bg-deep); color: var(--text-primary);
+    padding: 28px 24px;
+    border: 1px solid var(--line-mid);
+    border-left: 4px solid var(--signal-yellow);
+  }
+  .outcome-block.real {
+    border-left-color: var(--green);
+    border-left-width: 4px;
+    margin-left: -1px;
+  }
+  .outcome-block-label {
+    font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--text-secondary); margin-bottom: 12px;
+  }
+  .outcome-block.real .outcome-block-label { color: var(--green); }
+  .outcome-block-headline {
+    font-family: var(--f-display); font-size: 22px;
+    line-height: 1.25; margin-bottom: 14px;
+    color: var(--text-primary);
+  }
+  .outcome-block-headline em { color: var(--signal-yellow); font-style: italic; }
+  .outcome-block.real .outcome-block-headline em { color: var(--green); }
+  .outcome-block-body { font-size: 14px; line-height: 1.65; color: var(--text-dim); }
+  .outcome-block-source {
+    margin-top: 16px; padding-top: 14px;
+    border-top: 1px dashed var(--line-soft);
+    font-family: var(--f-mono); font-size: 9px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .outcome-mechanism {
+    background: var(--bg-deep);
+    padding: 36px 32px;
+    border-top: 4px solid var(--signal-yellow);
+    margin-bottom: 36px;
+  }
+  .outcome-mechanism-label {
+    font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--signal-yellow); margin-bottom: 16px;
+  }
+  .outcome-mechanism-name {
+    font-family: var(--f-display); font-weight: 400;
+    font-size: 32px; line-height: 1.1;
+    color: var(--text-primary); margin-bottom: 12px;
+  }
+  .outcome-mechanism-cn {
+    font-family: var(--f-cn); font-size: 16px;
+    color: var(--signal-yellow); margin-bottom: 20px;
+  }
+  .outcome-mechanism-body { font-size: 15px; line-height: 1.7; color: var(--text-dim); }
+  .outcome-mechanism-body strong { color: var(--signal-yellow); font-weight: 600; }
+
+  .outcome-closing { margin-top: 48px; padding: 40px 0; border-top: 1px solid var(--line-mid); text-align: center; }
+  .outcome-closing-line {
+    font-family: var(--f-display); font-style: italic;
+    font-weight: 350; font-size: clamp(22px, 2.6vw, 30px);
+    line-height: 1.35; color: var(--text-primary);
+    margin-bottom: 28px; letter-spacing: -0.015em;
+  }
+  .outcome-closing-line em { color: var(--signal-yellow); }
+  .outcome-closing-line .cn {
+    font-family: var(--f-cn); font-size: 0.55em;
+    color: var(--text-secondary); display: block; margin-top: 8px;
+    font-style: normal; opacity: 0.75;
+  }
+  .outcome-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+  .lang-switch {
+    position: fixed; top: 52px; right: 28px; z-index: 260;
+    display: grid; grid-template-columns: repeat(3, auto); gap: 6px;
+    padding: 5px; background: rgba(12, 10, 20, 0.72);
+    border: 1px solid var(--line-mid);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  .lang-switch button {
+    font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-secondary); background: transparent;
+    border: 1px solid transparent; padding: 9px 11px;
+    cursor: pointer; transition: all 160ms;
+  }
+  .lang-switch button:hover,
+  .lang-switch button.active {
+    color: var(--bg-deep); background: var(--signal-yellow);
+    border-color: var(--signal-yellow);
+  }
+  body.lang-zh .lang-switch button,
+  body.lang-th .lang-switch button { letter-spacing: 0.06em; }
+  body.lang-zh .dossier-name,
+  body.lang-zh .dossier-rows .v,
+  body.lang-zh .dossier-bio,
+  body.lang-zh .story-card-prompt,
+  body.lang-zh .outcome-title { font-family: var(--f-cn); font-style: normal; }
+  body.lang-th .dossier-name,
+  body.lang-th .dossier-altname,
+  body.lang-th .dossier-rows .v,
+  body.lang-th .dossier-bio,
+  body.lang-th .story-card-prompt,
+  body.lang-th .outcome-title { font-family: 'Noto Sans Thai', sans-serif; font-style: normal; }
+
+  @media (max-width: 1024px) {
+    .picker-head { grid-template-columns: 1fr; gap: 32px; align-items: start; }
+    .portrait-grid { grid-template-columns: repeat(16, 1fr); }
+    .pick-cta-bar { flex-direction: column; align-items: flex-start; }
+    .outcome-grid { grid-template-columns: 1fr; }
+    .outcome-block.real { margin-left: 0; margin-top: -1px; border-top: 1px solid var(--line-mid); }
+    .story-card { padding: 32px 24px; }
+  }
+  @media (max-width: 640px) {
+    .portrait-grid { grid-template-columns: repeat(10, 1fr); }
+  }
+</style>
+</head>
+<body data-page="persona">
+
+<div class="meta-bar">
+  <div class="meta-bar-left">
+    <a href="index.html" id="metaBack">← Back to archive</a>
+    <span class="dot"></span>
+    <span id="metaTitle">§ Personal experience</span>
+  </div>
+  <div class="meta-bar-right">
+    <span class="meta-bar-journey" id="metaJourney"><span class="yellow" id="metaJourneyLabel">walking as</span> <span id="metaJourneyName">—</span></span>
+    <span class="meta-bar-coord">Bangkok · 2026.05</span>
+  </div>
+</div>
+<div class="lang-switch" id="langSwitch" aria-label="Language">
+  <button type="button" data-lang="en" class="active">EN</button>
+  <button type="button" data-lang="zh">中文</button>
+  <button type="button" data-lang="th">ไทย</button>
+</div>
+
+<canvas id="ditherCanvas" class="dither-canvas"></canvas>
+
+<!-- SCREEN 1 · PICKER -->
+<section class="screen active" id="screenPicker">
+  <div class="wrap">
+    <div class="picker-head">
+      <div>
+        <div class="eyebrow"><span id="pickerEyebrow">Choose a character to walk their experience</span></div>
+        <h1 class="page-title">
+          <span id="pickerTitleHtml">Every <em>statistic</em><br>was a <em>somebody</em>.</span>
+          <span class="cn" id="pickerSubtitle">每个人都有独特的故事</span>
+        </h1>
+      </div>
+    </div>
+
+    <div class="portrait-pool">
+      <div class="portrait-grid" id="portraitGrid"></div>
+    </div>
+    <div class="pick-cta-bar">
+      <div class="pick-cta-text">
+        <p id="pickCtaBody">The archive will assign you a position you might not have chosen. This is what fieldwork actually feels like.</p>
+      </div>
+      <button class="pick-cta-btn" id="randomPickBtn">Draw a capsule</button>
+    </div>
+  </div>
+</section>
+
+<!-- CAPSULE overlay · gachapon draw -->
+<div class="capsule-screen" id="capsuleScreen">
+  <div class="capsule-stage">
+    <div class="capsule" id="capsuleEl">
+      <div class="capsule-shadow"></div>
+      <div class="capsule-half capsule-bottom"></div>
+      <div class="capsule-half capsule-top"></div>
+      <div class="capsule-seam"></div>
+      <div class="capsule-shine"></div>
+    </div>
+    <div class="capsule-flash" id="capsuleFlash"></div>
+    <div class="capsule-card" id="capsuleCard">
+      <div class="cap-card-clip"></div>
+      <div class="cap-card-photo" id="capCardPhoto"></div>
+      <div class="cap-card-name" id="capCardName">—</div>
+      <div class="cap-card-alt" id="capCardAlt">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- LANYARD overlay -->
+<div class="lanyard-blackout" id="lanyardBlackout"></div>
+<div class="lanyard-screen" id="lanyardScreen">
+  <div class="lanyard-meta-top" id="lanyardMetaTop">§ A NAME HAS DROPPED</div>
+  <button class="lanyard-redraw" id="lanyardRedrawBtn" title="Draw another · 再抽一次">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/>
+      <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/>
+    </svg>
+  </button>
+  <div class="lanyard-body">
+    <div class="lanyard-stage">
+      <div class="lanyard-bgword" aria-hidden="true">
+        <span class="bgword-en" id="lanyardBgMain">drag the card, then step in</span>
+        <span class="bgword-cn" id="lanyardBgSub">拖动卡片进入故事</span>
+        <span class="bgword-th" id="lanyardBgFine">ลากบัตร แล้วก้าวเข้าไป</span>
+      </div>
+      <div class="lanyard-fallback-card" id="lanyardFallbackCard" aria-hidden="true">
+        <div class="fallback-slot"></div>
+        <div class="fallback-photo" id="lanyardFallbackPhoto"></div>
+        <div class="fallback-name" id="lanyardFallbackName">—</div>
+        <div class="fallback-role" id="lanyardFallbackRole">—</div>
+      </div>
+      <canvas id="lanyardCanvas"></canvas>
+      <div class="lanyard-draghint" id="lanyardDragHint">§ drag the card, then step in</div>
+    </div>
+    <aside class="lanyard-dossier" id="lanyardDossier">
+      <div class="dossier-figure" id="dossierFigure" aria-hidden="true"></div>
+      <div class="dossier-main">
+        <h2 class="dossier-name" id="dossierName">—</h2>
+        <div class="dossier-altname" id="dossierAltName">—</div>
+        <div class="dossier-rows" id="dossierRows"></div>
+        <p class="dossier-bio" id="dossierBio">—</p>
+        <button class="lanyard-step-in" id="stepInBtn">Step in</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- SCREEN 3 · STORY -->
+<section class="screen" id="screenStory">
+  <div class="wrap">
+    <div class="story-shell">
+      <div class="story-meta">
+        <span id="storyPathMeta">§ Path · Step <span id="storyStepNum">01</span> / 04</span>
+        <span class="you"><span id="storyAsLabel">walking as</span> <span class="yellow" id="storyAsName">—</span></span>
+      </div>
+      <div class="story-progress" id="storyProgress">
+        <div class="story-progress-step current"></div>
+        <div class="story-progress-step"></div>
+        <div class="story-progress-step"></div>
+        <div class="story-progress-step"></div>
+      </div>
+      <div class="story-card" id="storyCard"></div>
+      <button class="story-back" id="storyBackBtn">← back to picker</button>
+    </div>
+  </div>
+</section>
+
+<!-- SCREEN 4 · OUTCOME -->
+<section class="screen" id="screenOutcome">
+  <div class="wrap">
+    <div class="outcome-shell">
+      <div class="outcome-tag"><span class="num" id="outcomeNum">§ Outcome</span><span id="outcomeTagText">Your path is over · See what it reveals</span></div>
+      <h2 class="outcome-title" id="outcomeTitle">—</h2>
+      <p class="outcome-lead" id="outcomeLead">—</p>
+      <div class="outcome-grid">
+        <div class="outcome-block">
+          <div class="outcome-block-label" id="outcomePathLabel">In your path</div>
+          <div class="outcome-block-headline" id="outcomePathHeadline">—</div>
+          <div class="outcome-block-body" id="outcomePathBody">—</div>
+          <div class="outcome-block-source" id="outcomeChoiceSource">From your choices</div>
+        </div>
+        <div class="outcome-block real">
+          <div class="outcome-block-label" id="outcomeRealLabel">In the real archive</div>
+          <div class="outcome-block-headline" id="outcomeRealHeadline">—</div>
+          <div class="outcome-block-body" id="outcomeRealBody">—</div>
+          <div class="outcome-block-source" id="outcomeRealSource">—</div>
+        </div>
+      </div>
+      <div class="outcome-mechanism">
+        <div class="outcome-mechanism-label" id="outcomeMechanismLabel">§ Mechanism revealed</div>
+        <div class="outcome-mechanism-name" id="outcomeMechName">—</div>
+        <div class="outcome-mechanism-cn" id="outcomeMechCn">—</div>
+        <div class="outcome-mechanism-body" id="outcomeMechBody">—</div>
+      </div>
+      <div class="outcome-closing">
+        <p class="outcome-closing-line">
+          <span id="outcomeClosingHtml">This is not a game about win. It is a game to <em>reveal</em>.</span>
+        </p>
+        <div class="outcome-actions">
+          <button class="btn-primary" id="outcomeRedrawBtn">Walk another character</button>
+          <a class="btn-secondary" href="index.html" id="outcomeBackArchive">← Back to archive</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="dither.js"></script>
+<script src="portrait.js"></script>
+<script src="persona_pics_data.js"></script>
+<script src="persona.js"></script>
+<script src="lang-switch.js"></script>
+</body>
+</html>
