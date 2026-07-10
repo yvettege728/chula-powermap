@@ -42,5 +42,8 @@ export function validateSubmitPayload(payload) {
   if (payload.description.length > 20000) {
     return { ok: false, error: "description must be 20000 characters or fewer" };
   }
+  if (payload.contact !== undefined && typeof payload.contact !== "string") {
+    return { ok: false, error: "contact must be a string when present" };
+  }
   return { ok: true };
 }

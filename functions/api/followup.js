@@ -30,6 +30,7 @@ export async function onRequestPost(context) {
   try {
     parsed = JSON.parse(text);
   } catch {
+    // If Claude didn't return valid JSON, fail safe: no follow-up question.
     return jsonResponse({ followup_question: null });
   }
 
