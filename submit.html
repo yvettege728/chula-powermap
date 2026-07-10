@@ -256,12 +256,37 @@
 <script src="dither.js"></script>
 <script type="module" src="interview.js"></script>
 <script>
-document.getElementById("submitForm").addEventListener("submit", (e) => {
+document.getElementById("submitForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  // demo only — no actual backend
-  document.getElementById("submitForm").style.display = "none";
-  document.getElementById("formSuccess").classList.add("show");
-  window.scrollTo({ top: 200, behavior: "smooth" });
+  const form = e.target;
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Sending…";
+
+  const payload = {
+    kind: document.getElementById("kind").value,
+    site: document.getElementById("site").value,
+    description: document.getElementById("description").value,
+    contact: document.getElementById("contact").value,
+    visibility: form.querySelector('input[name="visibility"]:checked').value,
+    source: form.dataset.source || "form",
+  };
+
+  try {
+    const res = await fetch("/api/submit", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("submit failed");
+    form.style.display = "none";
+    document.getElementById("formSuccess").classList.add("show");
+    window.scrollTo({ top: 200, behavior: "smooth" });
+  } catch {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Send submission";
+    alert("Something went wrong sending your submission. Nothing was lost — please try again in a moment.");
+  }
 });
 </script>
 <script src="lang-switch.js"></script>
