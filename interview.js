@@ -13,7 +13,7 @@ function initInterviewFlow() {
   const submitForm = document.getElementById("submitForm");
   if (!toggle || !interviewFlow || !submitForm) return; // not on this page
 
-  const questionEl = document.getElementById("interviewQuestion");
+  const threadEl = document.getElementById("interviewThread");
   const answerEl = document.getElementById("interviewAnswer");
   const nextBtn = document.getElementById("interviewNext");
   const statusEl = document.getElementById("interviewStatus");
@@ -22,6 +22,7 @@ function initInterviewFlow() {
   const answers = [];
   let state = { step: "q0", followupQuestion: null };
   let followupAnswer;
+  let started = false;
 
   toggle.querySelectorAll("[data-mode]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -30,35 +31,46 @@ function initInterviewFlow() {
       const mode = btn.dataset.mode;
       interviewFlow.hidden = mode !== "interview";
       submitForm.hidden = mode === "interview";
-      if (mode === "interview") renderStep();
+      if (mode === "interview" && !started) {
+        started = true;
+        askCurrentQuestion();
+      }
     });
   });
 
-  function renderStep() {
+  function addMessage(text, who) {
+    const el = document.createElement("div");
+    el.className = "interview-msg interview-msg-" + who;
+    el.textContent = text;
+    threadEl.appendChild(el);
+    threadEl.scrollTop = threadEl.scrollHeight;
+  }
+
+  function askCurrentQuestion() {
     if (state.step === "q0" || state.step === "q1" || state.step === "q2") {
-      const idx = Number(state.step[1]);
-      questionEl.textContent = FIXED_QUESTIONS[idx];
-      answerEl.value = "";
-      answerEl.disabled = false;
-      nextBtn.disabled = false;
-      statusEl.textContent = "";
+      addMessage(FIXED_QUESTIONS[Number(state.step[1])], "bot");
     } else if (state.step === "followup-question") {
-      questionEl.textContent = state.followupQuestion;
-      answerEl.value = "";
-      answerEl.disabled = false;
-      nextBtn.disabled = false;
-      statusEl.textContent = "";
+      addMessage(state.followupQuestion, "bot");
     }
+    answerEl.value = "";
+    answerEl.disabled = false;
+    nextBtn.disabled = false;
+    statusEl.textContent = "";
+    answerEl.focus();
   }
 
   async function handleNext() {
     const value = answerEl.value.trim();
     if (!value) return;
 
+    addMessage(value, "user");
+    answerEl.value = "";
+
     if (state.step === "q0" || state.step === "q1" || state.step === "q2") {
       answers.push(value);
       if (state.step === "q2") {
         nextBtn.disabled = true;
+        answerEl.disabled = true;
         statusEl.textContent = "Thinking…";
         try {
           const res = await fetch("/api/followup", {
@@ -66,15 +78,19 @@ function initInterviewFlow() {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ answers }),
           });
-          if (!res.ok) throw new Error("followup request failed");
+          if (!res.ok) {
+            const errBody = await res.text().catch(() => "");
+            throw new Error(`followup request failed: ${res.status} ${errBody}`);
+          }
           const data = await res.json();
           state = { step: "checking-followup", followupQuestion: data.followup_question };
-        } catch {
+        } catch (err) {
+          console.error("[interview] /api/followup failed:", err);
           return fallbackToForm();
         }
       } else {
         state = { step: nextStep(state), followupQuestion: null };
-        renderStep();
+        askCurrentQuestion();
         return;
       }
     } else if (state.step === "followup-question") {
@@ -84,12 +100,13 @@ function initInterviewFlow() {
     state = { step: nextStep(state), followupQuestion: state.followupQuestion };
 
     if (state.step === "followup-question") {
-      renderStep();
+      askCurrentQuestion();
       return;
     }
 
     if (state.step === "synthesizing") {
       nextBtn.disabled = true;
+      answerEl.disabled = true;
       statusEl.textContent = "Organizing your answers…";
       try {
         const res = await fetch("/api/synthesize", {
@@ -97,11 +114,15 @@ function initInterviewFlow() {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ answers, followup_answer: followupAnswer }),
         });
-        if (!res.ok) throw new Error("synthesize request failed");
+        if (!res.ok) {
+          const errBody = await res.text().catch(() => "");
+          throw new Error(`synthesize request failed: ${res.status} ${errBody}`);
+        }
         const draft = await res.json();
         applyDraftToForm(draft);
         return;
-      } catch {
+      } catch (err) {
+        console.error("[interview] /api/synthesize failed:", err);
         return fallbackToForm();
       }
     }
@@ -131,7 +152,12 @@ function initInterviewFlow() {
   }
 
   nextBtn.addEventListener("click", handleNext);
-  renderStep();
+  answerEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!nextBtn.disabled) handleNext();
+    }
+  });
 }
 
 document.addEventListener("DOMContentLoaded", initInterviewFlow);

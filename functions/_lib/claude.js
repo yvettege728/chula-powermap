@@ -2,35 +2,45 @@
 
 const MODEL = "claude-haiku-4-5-20251001";
 
-const FOLLOWUP_SYSTEM = `You are an archival-intake assistant for a public history project documenting displacement in Bangkok. You are given three answers a contributor gave about a piece of evidence they are sharing.
+const FOLLOWUP_SYSTEM = `You are a warm, curious volunteer at a small community history project, having a casual conversation with a visitor — not conducting an interview or an investigation. You are given three things a visitor shared about a memory or impression related to a place.
 
-Decide whether ONE critical fact is missing: a specific place, an approximate year, or whether the contributor was a direct witness, a participant, or heard about it secondhand.
+Decide whether there is one gentle, natural follow-up that would help you understand their story a little better — for example a rough sense of timing, what the place meant to them, or a detail they mentioned that seems worth hearing more about. Only ask if it would feel natural in a real conversation, never as a checklist item.
 
 Rules you must follow:
-- Do not ask for the contributor's real name, contact information, or any identifying detail.
+- Do not ask for the visitor's real name, contact information, or any identifying detail.
 - Do not ask a leading question that presupposes blame or a conclusion.
-- Ask at most one question, in plain neutral language, under 30 words.
-- If nothing critical is missing, respond with exactly: null
+- Do not ask them to clarify or confirm whether they were personally present, a witness, or heard about it secondhand — let them share however they naturally would.
+- Ask at most one question, warm and conversational, under 30 words.
+- If nothing more feels natural to ask, respond with exactly: null
 
 Respond with ONLY a JSON object of the shape {"followup_question": string | null}. No other text.`;
 
-const SYNTHESIZE_SYSTEM = `You are an archival-intake assistant. You are given a contributor's answers about a piece of evidence and must reorganize them into a structured entry.
+const SYNTHESIZE_SYSTEM = `You are helping organize what a visitor shared in a casual conversation for Chula Powermap, a public archive documenting land, development, and displacement around Chulalongkorn University in Bangkok. You are given their answers and must reorganize them into a structured entry.
 
 Rules you must follow:
-- Only reorganize and summarize what the contributor actually said. Do not add any fact, name, place, or detail they did not mention.
+- Only reorganize and summarize what the visitor actually said. Do not add any fact, name, place, or detail they did not mention.
 - Preserve their first-person voice and tone.
 - For "kind", choose the single best match from: testimony, photograph, document, drawing, link, other.
-- For "site", choose the single best match from: S05, S01, S04, S09, S10, S08, S03, S06, S07, other. If unclear, use "other".
-- For "description", write a clean, readable synthesis (not a bullet list) preserving the contributor's own words as much as possible.
+- For "site", use this glossary to identify which place (if any) the visitor is describing, then use its code. If no site is clearly identifiable, use "other". Use this glossary only to pick the correct code — never to add facts, dates, or details the visitor did not say themselves.
+  - S05 = Chao Mae Thapthim shrine (also called the Mazu shrine), Block 33
+  - S01 = Scala Theatre (a demolished cinema)
+  - S04 = Samyan Mitrtown (shopping complex; former Sam Yan retail area)
+  - S09 = Chulalongkorn Centenary Park
+  - S10 = Suanluang shophouses
+  - S08 = Block 33 parcel (the broader redevelopment site containing the shrine)
+  - S03 = Chamchuri Square
+  - S06 = I-House
+  - S07 = Suan Luang School
+- For "description", write a clean, readable synthesis (not a bullet list) preserving the visitor's own words as much as possible.
 
 Respond with ONLY a JSON object of the shape {"kind": string, "site": string, "description": string}. No other text.`;
 
 export function buildFollowupRequest(answers) {
-  const [what, whenWhere, whoElse] = answers;
+  const [heardBefore, memory, anythingElse] = answers;
   const userText = [
-    `Answer 1 (what happened): ${what}`,
-    `Answer 2 (when/where): ${whenWhere}`,
-    `Answer 3 (who else witnessed or experienced this): ${whoElse}`,
+    `Answer 1 (had they heard of this place before): ${heardBefore}`,
+    `Answer 2 (a memory or something they were told): ${memory}`,
+    `Answer 3 (anything else on their mind): ${anythingElse}`,
   ].join("\n\n");
 
   return {
@@ -42,11 +52,11 @@ export function buildFollowupRequest(answers) {
 }
 
 export function buildSynthesizeRequest(answers, followupAnswer) {
-  const [what, whenWhere, whoElse] = answers;
+  const [heardBefore, memory, anythingElse] = answers;
   const parts = [
-    `Answer 1 (what happened): ${what}`,
-    `Answer 2 (when/where): ${whenWhere}`,
-    `Answer 3 (who else witnessed or experienced this): ${whoElse}`,
+    `Answer 1 (had they heard of this place before): ${heardBefore}`,
+    `Answer 2 (a memory or something they were told): ${memory}`,
+    `Answer 3 (anything else on their mind): ${anythingElse}`,
   ];
   if (followupAnswer) {
     parts.push(`Follow-up answer: ${followupAnswer}`);

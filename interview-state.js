@@ -3,9 +3,9 @@
 // interview.js (browser, built in a later task) and by interview-state.test.js (Node).
 
 export const FIXED_QUESTIONS = [
-  "What happened?",
-  "Roughly when and where?",
-  "Did anyone else experience or witness this? (No need to name them.)",
+  "Had you heard of this place before, or is this the first time?",
+  "Is there anything you remember yourself, or maybe something a family member or friend once mentioned about this area?",
+  "Anything else on your mind you'd like to share — a feeling, a question, a detail, anything at all?",
 ];
 
 export function nextStep(state) {
