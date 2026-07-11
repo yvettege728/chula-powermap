@@ -2,8 +2,13 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "chula-powermap",
   "compatibility_date": "2026-07-01",
+  // The actual Worker script. Without this, Cloudflare treats the project as
+  // "static assets only" and there is nowhere to run our /api/* handlers or
+  // add Secrets in the dashboard.
+  "main": "src/index.js",
   "assets": {
     "directory": "./",
+    "binding": "ASSETS",
     "not_found_handling": "404-page"
   },
   // Prevents future `wrangler deploy` runs (triggered automatically by every

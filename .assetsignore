@@ -4,3 +4,16 @@
 node_modules
 .DS_Store
 .wrangler
+
+# Server-side-only code: never meant to be publicly downloadable as raw
+# files. The Worker script (src/) and API handlers (functions/) still run
+# normally server-side — this only stops them from being served as static
+# text files at their own URL.
+functions
+src
+docs
+*.test.js
+package.json
+package-lock.json
+wrangler.jsonc
+.assetsignore
