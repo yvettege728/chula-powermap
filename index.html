@@ -205,6 +205,37 @@ body[data-lang="th"] .i18n{font-family:var(--f-th);}
 .entry-preview-svg{width:100%;height:64px;margin:6px 0 18px;}
 .entry-persona-cta{margin-top:8px;}
 
+/* ---------- CONTRIBUTE BAND ---------- */
+.contribute-band{
+  position:relative;z-index:1;padding:64px 0;
+  background:linear-gradient(160deg,var(--temple) 0%,var(--bg-deep) 100%);
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  text-align:center;
+}
+.contribute-band-inner{max-width:640px;margin:0 auto;padding:0 20px;}
+.contribute-band-eyebrow{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--lavender-dim);margin-bottom:18px;
+}
+.contribute-band-title{
+  font-family:var(--f-display);font-weight:360;font-size:clamp(28px,3.6vw,44px);
+  line-height:1.1;letter-spacing:-0.02em;color:var(--bone);margin:0 0 16px;
+}
+.contribute-band-title em{font-style:italic;color:var(--green);}
+.contribute-band-lead{
+  font-size:15px;line-height:1.65;color:var(--lavender-dim);margin:0 0 30px;
+}
+.contribute-band-lead strong{color:var(--lavender);font-weight:600;}
+.contribute-band .btn-primary{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  min-height:52px;padding:0 26px;box-sizing:border-box;
+  font-family:var(--f-mono);font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;
+  line-height:1;white-space:nowrap;border-radius:2px;text-decoration:none;
+  background:var(--green);color:var(--bg-deep);border:1px solid var(--green);
+  transition:transform 160ms,box-shadow 160ms;
+}
+.contribute-band .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(95,184,146,0.25);}
+
 /* ---------- FOOTER ---------- */
 .site-footer{border-top:1px solid var(--rule);padding:54px 0 40px;color:var(--lavender-dim);}
 .footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.4fr;gap:30px;}
@@ -467,6 +498,28 @@ body[data-lang="th"] .i18n{font-family:var(--f-th);}
       </a>
 
     </div>
+  </div>
+</section>
+
+<!-- ===================================================== CONTRIBUTE BAND ===================================================== -->
+<section class="contribute-band">
+  <div class="wrap contribute-band-inner">
+    <div class="contribute-band-eyebrow i18n"
+      data-en="A sixth way in — yours"
+      data-zh="第六个入口——属于你"
+      data-th="ทางที่หกเข้าสู่คลัง — ของคุณเอง">A sixth way in — yours</div>
+    <h2 class="contribute-band-title i18n"
+      data-en="Always incomplete,<br>always <em>listening</em>."
+      data-zh="始终未完成，<br>始终<em>在倾听</em>。"
+      data-th="ยังไม่เสร็จสมบูรณ์เสมอ<br>และ<em>รับฟัง</em>เสมอ">Always incomplete,<br>always <em>listening</em>.</h2>
+    <p class="contribute-band-lead i18n"
+      data-en="Every site here has people who saw something the archive does not yet name. If that's you — or someone you know — <strong>we are always listening for your stories</strong>."
+      data-zh="每一处场地，都有人见过档案尚未命名的事物。如果那是你，或是你认识的人，<strong>我们始终在倾听你们的故事</strong>。"
+      data-th="ทุกพื้นที่ล้วนมีผู้คนที่ได้เห็นสิ่งที่คลังนี้ยังไม่ได้บันทึกชื่อไว้ หากนั่นคือคุณ หรือคนที่คุณรู้จัก <strong>เรายินดีรับฟังเรื่องราวของคุณเสมอ</strong>">Every site here has people who saw something the archive does not yet name. If that's you — or someone you know — <strong>we are always listening for your stories</strong>.</p>
+    <a class="btn-primary" href="contribute.html">
+      <span class="i18n" data-en="Tell your story" data-zh="讲述你的故事" data-th="เล่าเรื่องของคุณ">Tell your story</span>
+      <span aria-hidden="true">→</span>
+    </a>
   </div>
 </section>
 
