@@ -219,6 +219,54 @@
   .privacy-note strong { color: var(--signal-jade); font-weight: 600; }
 
   .form-actions { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line-mid); display: flex; gap: 12px; flex-wrap: wrap; }
+
+  /* ----- AI conversation intake ----- */
+  .intake-toggle { display: flex; gap: 8px; margin: 0 0 22px; }
+  .intake-toggle-btn {
+    flex: 1; padding: 10px 14px; background: transparent; border-radius: 2px;
+    border: 1px solid var(--line-mid); color: var(--text-dim);
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: pointer; transition: border-color 160ms, color 160ms;
+  }
+  .intake-toggle-btn.is-active { border-color: var(--signal-jade); color: var(--signal-jade); }
+  .interview-flow {
+    background: rgba(34, 26, 56, 0.6); border: 1px solid var(--line-mid); border-radius: 2px;
+    padding: clamp(20px, 2.6vw, 30px); margin-bottom: 20px;
+  }
+  .interview-notice {
+    font-family: var(--f-body); font-size: 12px; font-style: italic;
+    color: var(--text-secondary); margin: 0 0 18px; line-height: 1.5;
+  }
+  .interview-thread {
+    max-height: 380px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 12px;
+    margin-bottom: 18px; padding-right: 4px;
+  }
+  .interview-msg {
+    font-family: var(--f-body); font-size: 14px; line-height: 1.55;
+    padding: 12px 16px; max-width: 85%; border-radius: 2px;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .interview-msg-bot {
+    align-self: flex-start;
+    background: var(--moss-soft);
+    border-left: 2px solid var(--signal-jade);
+    color: var(--text-primary);
+  }
+  .interview-msg-user {
+    align-self: flex-end;
+    background: rgba(255, 255, 255, 0.04);
+    border-left: 2px solid var(--line-mid);
+    color: var(--text-dim);
+  }
+  .interview-answer { min-height: 70px; }
+  .interview-actions { margin-top: 14px; display: flex; align-items: center; gap: 14px; }
+  .interview-status { font-family: var(--f-mono); font-size: 11px; color: var(--text-secondary); }
+  .ai-draft-notice {
+    background: rgba(126, 212, 171, 0.12); border-left: 3px solid var(--signal-jade); border-radius: 2px;
+    padding: 12px 16px; margin-bottom: 18px;
+    font-family: var(--f-body); font-size: 12.5px; color: var(--text-dim);
+  }
   .btn-primary, .btn-secondary {
     display: inline-flex; align-items: center; justify-content: center;
     min-height: 46px; padding: 0 22px; border-radius: 2px;
@@ -328,8 +376,25 @@
       <!-- ===================== RIGHT · INTAKE FORM ===================== -->
       <div class="form-col">
 
+        <div class="intake-toggle" id="intakeToggle">
+          <button type="button" class="intake-toggle-btn is-active" data-mode="form" data-i18n="intake.form">Fill out the form</button>
+          <button type="button" class="intake-toggle-btn" data-mode="interview" data-i18n="intake.chat">Have a conversation instead</button>
+        </div>
+
+        <div class="interview-flow" id="interviewFlow" hidden>
+          <div class="interview-notice" data-i18n="intake.notice">This conversation is guided by an AI assistant to help organize what you share. A human volunteer will read everything before anything is published.</div>
+          <div class="interview-thread" id="interviewThread"></div>
+          <textarea class="form-textarea interview-answer" id="interviewAnswer" maxlength="2000" data-i18n-ph="intake.ph" placeholder="Type your answer…"></textarea>
+          <div class="interview-actions">
+            <button type="button" class="btn-primary" id="interviewNext" data-i18n="intake.next">Next</button>
+            <span class="interview-status" id="interviewStatus"></span>
+          </div>
+        </div>
+
         <form class="submit-form" id="submitForm">
           <p class="form-intro" data-i18n="form.intro">No login · no real name required · you decide what appears</p>
+
+          <div class="ai-draft-notice" id="aiDraftNotice" hidden data-i18n="intake.draftNotice">AI-assisted draft — please check it over before sending. Every field below is still yours to edit.</div>
 
           <div class="form-group">
             <label class="form-label" for="kind" data-i18n="f.kind.label">§ 01 · What kind of material?</label>
@@ -414,6 +479,7 @@
 </section>
 
 <script src="dither.js"></script>
+<script type="module" src="interview.js"></script>
 <script>
 /* ============================================================
    i18n dictionary — EN / 中文 / ไทย
@@ -451,6 +517,12 @@ const I18N = {
     "g4.body1": "We do not name caretakers, market vendors, or family members who have not chosen to be public. We do not publish photographs of identifiable individuals without their consent. We do not share contact information.",
     "g4.body2": "We do name <strong>institutions</strong>, <strong>their senior decision-makers</strong>, and <strong>public-figure activists who have chosen to be public</strong>. That distinction is what makes this an archive rather than a directory.",
     "form.intro": "No login · no real name required · you decide what appears",
+    "intake.form": "Fill out the form",
+    "intake.chat": "Have a conversation instead",
+    "intake.notice": "This conversation is guided by an AI assistant to help organize what you share. A human volunteer will read everything before anything is published.",
+    "intake.ph": "Type your answer…",
+    "intake.next": "Next",
+    "intake.draftNotice": "AI-assisted draft — please check it over before sending. Every field below is still yours to edit.",
     "f.kind.label": "§ 01 · What kind of material?",
     "f.kind.hint": "Help us know what to expect. You can change this later.",
     "f.kind.o1": "Personal testimony · I saw / I lived through this",
@@ -511,6 +583,12 @@ const I18N = {
     "g4.body1": "我们不会具名那些未选择公开身份的庙祝、市场摊贩或家庭成员。未经本人同意，我们不会发布可辨认个体的照片。我们不会分享联系方式。",
     "g4.body2": "我们会具名<strong>机构</strong>、<strong>其高层决策者</strong>，以及<strong>已选择公开身份的公众人物活动家</strong>。正是这一区分，使它成为一份档案，而非一本通讯录。",
     "form.intro": "无需登录 · 无需真实姓名 · 由你决定哪些内容公开",
+    "intake.form": "填写表单",
+    "intake.chat": "改用对话方式",
+    "intake.notice": "这段对话由 AI 助手引导，帮助整理你分享的内容。发布前会有人工志愿者阅读全部内容。",
+    "intake.ph": "在这里输入你的回答…",
+    "intake.next": "下一步",
+    "intake.draftNotice": "AI 协助整理的草稿——发送前请检查一遍。下方每一项内容你都可以修改。",
     "f.kind.label": "§ 01 · 这是什么类型的材料？",
     "f.kind.hint": "让我们了解大致情况。稍后仍可更改。",
     "f.kind.o1": "个人证词 · 我亲眼所见 / 我亲身经历",
@@ -571,6 +649,12 @@ const I18N = {
     "g4.body1": "เราไม่ระบุชื่อผู้ดูแลศาลเจ้า พ่อค้าแม่ค้าในตลาด หรือสมาชิกครอบครัวที่ไม่ได้เลือกจะเปิดเผยตัว เราไม่เผยแพร่ภาพถ่ายของบุคคลที่ระบุตัวได้โดยไม่ได้รับความยินยอม และเราไม่เปิดเผยข้อมูลติดต่อ",
     "g4.body2": "เราระบุชื่อ<strong>สถาบัน</strong> <strong>ผู้บริหารระดับสูงผู้ตัดสินใจ</strong> และ<strong>นักกิจกรรมที่เป็นบุคคลสาธารณะซึ่งเลือกจะเปิดเผยตัว</strong> ความแตกต่างนี้เองที่ทำให้สิ่งนี้เป็นคลังจดหมายเหตุ ไม่ใช่สมุดรายชื่อ",
     "form.intro": "ไม่ต้องเข้าสู่ระบบ · ไม่ต้องใช้ชื่อจริง · คุณเป็นผู้กำหนดว่าจะให้สิ่งใดปรากฏ",
+    "intake.form": "กรอกแบบฟอร์ม",
+    "intake.chat": "พูดคุยแทนการกรอกฟอร์ม",
+    "intake.notice": "บทสนทนานี้มีผู้ช่วย AI คอยแนะนำ เพื่อช่วยจัดระเบียบสิ่งที่คุณแบ่งปัน อาสาสมัครจะอ่านทุกอย่างก่อนเผยแพร่",
+    "intake.ph": "พิมพ์คำตอบของคุณที่นี่…",
+    "intake.next": "ถัดไป",
+    "intake.draftNotice": "ร่างที่ AI ช่วยจัดทำ — โปรดตรวจสอบก่อนส่ง ทุกช่องด้านล่างคุณยังแก้ไขได้",
     "f.kind.label": "§ 01 · เป็นวัสดุประเภทใด?",
     "f.kind.hint": "ช่วยให้เรารู้ว่าจะได้รับอะไร เปลี่ยนภายหลังได้",
     "f.kind.o1": "คำบอกเล่าส่วนตัว · ฉันได้เห็น / ฉันได้ผ่านเหตุการณ์นี้",
@@ -621,11 +705,47 @@ function setLang(lang) {
   );
 }
 
-document.getElementById("submitForm").addEventListener("submit", (e) => {
+const SENDING_TEXT = { en: "Sending…", zh: "发送中…", th: "กำลังส่ง…" };
+const SUBMIT_ERROR_TEXT = {
+  en: "Something went wrong sending your submission. Nothing was lost — please try again in a moment.",
+  zh: "发送投稿时出现问题。内容没有丢失——请稍后重试。",
+  th: "เกิดข้อผิดพลาดขณะส่งข้อมูลของคุณ ไม่มีอะไรสูญหาย — โปรดลองอีกครั้งในอีกสักครู่",
+};
+
+document.getElementById("submitForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  document.getElementById("submitForm").style.display = "none";
-  document.getElementById("formSuccess").classList.add("show");
-  window.scrollTo({ top: 200, behavior: "smooth" });
+  const form = e.target;
+  const lang = document.body.dataset.lang || "en";
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const originalLabel = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = SENDING_TEXT[lang] || SENDING_TEXT.en;
+
+  const payload = {
+    kind: document.getElementById("kind").value,
+    site: document.getElementById("site").value,
+    description: document.getElementById("description").value,
+    contact: document.getElementById("contact").value,
+    visibility: form.querySelector('input[name="visibility"]:checked').value,
+    source: form.dataset.source || "form",
+  };
+
+  try {
+    const res = await fetch("/api/submit", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`submit failed: ${res.status} ${await res.text().catch(() => "")}`);
+    form.style.display = "none";
+    document.getElementById("formSuccess").classList.add("show");
+    window.scrollTo({ top: 200, behavior: "smooth" });
+  } catch (err) {
+    console.error("[contribute] /api/submit failed:", err);
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalLabel;
+    alert(SUBMIT_ERROR_TEXT[lang] || SUBMIT_ERROR_TEXT.en);
+  }
 });
 
 setLang("en");

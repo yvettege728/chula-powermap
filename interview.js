@@ -2,7 +2,28 @@
 // DOM wiring for the conversational intake flow. Not unit tested — verified
 // via manual QA. Never imported by the Node test suite, so it is safe for
 // this file to reference `document`/`fetch`-in-browser freely.
-import { FIXED_QUESTIONS, nextStep } from "./interview-state.js";
+import { FIXED_QUESTIONS, FIXED_QUESTIONS_I18N, nextStep } from "./interview-state.js";
+
+const STATUS_TEXT = {
+  en: { thinking: "Thinking…", organizing: "Organizing your answers…" },
+  zh: { thinking: "思考中…", organizing: "正在整理你的回答…" },
+  th: { thinking: "กำลังคิด…", organizing: "กำลังจัดเรียงคำตอบของคุณ…" },
+};
+
+const FALLBACK_ALERT_TEXT = {
+  en: "The AI assistant is temporarily unavailable, so we've carried your answers into the form below — please review and send it directly.",
+  zh: "AI 助手暂时无法使用，我们已把你的回答填入下方表单——请检查后直接发送。",
+  th: "ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว เราจึงนำคำตอบของคุณมาใส่ในแบบฟอร์มด้านล่างแล้ว — โปรดตรวจสอบแล้วส่งได้เลย",
+};
+
+function currentLang() {
+  return document.body.dataset.lang || "en";
+}
+
+function statusText(key) {
+  const lang = currentLang();
+  return (STATUS_TEXT[lang] && STATUS_TEXT[lang][key]) || STATUS_TEXT.en[key];
+}
 
 function initInterviewFlow() {
   if (initInterviewFlow._initialized) return;
@@ -46,9 +67,14 @@ function initInterviewFlow() {
     threadEl.scrollTop = threadEl.scrollHeight;
   }
 
+  function currentQuestions() {
+    const lang = currentLang();
+    return (FIXED_QUESTIONS_I18N && FIXED_QUESTIONS_I18N[lang]) || FIXED_QUESTIONS;
+  }
+
   function askCurrentQuestion() {
     if (state.step === "q0" || state.step === "q1" || state.step === "q2") {
-      addMessage(FIXED_QUESTIONS[Number(state.step[1])], "bot");
+      addMessage(currentQuestions()[Number(state.step[1])], "bot");
     } else if (state.step === "followup-question") {
       addMessage(state.followupQuestion, "bot");
     }
@@ -71,7 +97,7 @@ function initInterviewFlow() {
       if (state.step === "q2") {
         nextBtn.disabled = true;
         answerEl.disabled = true;
-        statusEl.textContent = "Thinking…";
+        statusEl.textContent = statusText("thinking");
         try {
           const res = await fetch("/api/followup", {
             method: "POST",
@@ -107,7 +133,7 @@ function initInterviewFlow() {
     if (state.step === "synthesizing") {
       nextBtn.disabled = true;
       answerEl.disabled = true;
-      statusEl.textContent = "Organizing your answers…";
+      statusEl.textContent = statusText("organizing");
       try {
         const res = await fetch("/api/synthesize", {
           method: "POST",
@@ -147,7 +173,7 @@ function initInterviewFlow() {
     interviewFlow.hidden = true;
     submitForm.hidden = false;
     submitForm.dataset.source = "form";
-    alert("The AI assistant is temporarily unavailable, so we've carried your answers into the form below — please review and send it directly.");
+    alert(FALLBACK_ALERT_TEXT[currentLang()] || FALLBACK_ALERT_TEXT.en);
     submitForm.scrollIntoView({ behavior: "smooth" });
   }
 
