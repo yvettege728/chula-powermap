@@ -382,9 +382,9 @@
         </div>
 
         <div class="interview-flow" id="interviewFlow" hidden>
-          <div class="interview-notice" data-i18n="intake.notice">This conversation is guided by an AI assistant to help organize what you share. A human volunteer will read everything before anything is published.</div>
+          <div class="interview-notice" data-i18n="intake.notice">You're chatting with Jake, an AI helper for this archive. A human volunteer reads everything before anything is published.</div>
           <div class="interview-thread" id="interviewThread"></div>
-          <textarea class="form-textarea interview-answer" id="interviewAnswer" maxlength="2000" data-i18n-ph="intake.ph" placeholder="Type your answer…"></textarea>
+          <textarea class="form-textarea interview-answer" id="interviewAnswer" maxlength="4000" data-i18n-ph="intake.ph" placeholder="Type your answer…"></textarea>
           <div class="interview-actions">
             <button type="button" class="btn-primary" id="interviewNext" data-i18n="intake.next">Next</button>
             <span class="interview-status" id="interviewStatus"></span>
@@ -519,7 +519,7 @@ const I18N = {
     "form.intro": "No login · no real name required · you decide what appears",
     "intake.form": "Fill out the form",
     "intake.chat": "Have a conversation instead",
-    "intake.notice": "This conversation is guided by an AI assistant to help organize what you share. A human volunteer will read everything before anything is published.",
+    "intake.notice": "You're chatting with Jake, an AI helper for this archive. A human volunteer reads everything before anything is published.",
     "intake.ph": "Type your answer…",
     "intake.next": "Next",
     "intake.draftNotice": "AI-assisted draft — please check it over before sending. Every field below is still yours to edit.",
@@ -585,7 +585,7 @@ const I18N = {
     "form.intro": "无需登录 · 无需真实姓名 · 由你决定哪些内容公开",
     "intake.form": "填写表单",
     "intake.chat": "改用对话方式",
-    "intake.notice": "这段对话由 AI 助手引导，帮助整理你分享的内容。发布前会有人工志愿者阅读全部内容。",
+    "intake.notice": "你正在和 Jake 聊天——这个档案的 AI 助手。发布前会有人工志愿者阅读全部内容。",
     "intake.ph": "在这里输入你的回答…",
     "intake.next": "下一步",
     "intake.draftNotice": "AI 协助整理的草稿——发送前请检查一遍。下方每一项内容你都可以修改。",
@@ -651,7 +651,7 @@ const I18N = {
     "form.intro": "ไม่ต้องเข้าสู่ระบบ · ไม่ต้องใช้ชื่อจริง · คุณเป็นผู้กำหนดว่าจะให้สิ่งใดปรากฏ",
     "intake.form": "กรอกแบบฟอร์ม",
     "intake.chat": "พูดคุยแทนการกรอกฟอร์ม",
-    "intake.notice": "บทสนทนานี้มีผู้ช่วย AI คอยแนะนำ เพื่อช่วยจัดระเบียบสิ่งที่คุณแบ่งปัน อาสาสมัครจะอ่านทุกอย่างก่อนเผยแพร่",
+    "intake.notice": "คุณกำลังคุยกับเจค ผู้ช่วย AI ของคลังเรื่องราวนี้ อาสาสมัครจะอ่านทุกอย่างก่อนเผยแพร่",
     "intake.ph": "พิมพ์คำตอบของคุณที่นี่…",
     "intake.next": "ถัดไป",
     "intake.draftNotice": "ร่างที่ AI ช่วยจัดทำ — โปรดตรวจสอบก่อนส่ง ทุกช่องด้านล่างคุณยังแก้ไขได้",
@@ -729,6 +729,10 @@ document.getElementById("submitForm").addEventListener("submit", async (e) => {
     visibility: form.querySelector('input[name="visibility"]:checked').value,
     source: form.dataset.source || "form",
   };
+  if (form.dataset.language) payload.language = form.dataset.language;
+  if (form.dataset.transcript) {
+    try { payload.transcript = JSON.parse(form.dataset.transcript); } catch {}
+  }
 
   try {
     const res = await fetch("/api/submit", {

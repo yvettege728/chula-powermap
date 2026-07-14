@@ -11,6 +11,14 @@ export function buildAirtableRecord(payload) {
   if (payload.contact) {
     fields.Contact = payload.contact;
   }
+  if (payload.language) {
+    fields.Language = payload.language;
+  }
+  if (payload.transcript) {
+    fields.Transcript = Array.isArray(payload.transcript)
+      ? payload.transcript.map((t) => `${t.role}: ${t.text}`).join("\n\n")
+      : String(payload.transcript);
+  }
   return { fields };
 }
 

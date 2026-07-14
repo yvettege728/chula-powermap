@@ -3,31 +3,35 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildFollowupRequest, buildSynthesizeRequest } from "./claude.js";
 
-test("buildFollowupRequest embeds all three answers and caps output size", () => {
-  const req = buildFollowupRequest([
-    "I saw the eviction notice posted on the shrine door.",
-    "Around June 2020, at Block 33.",
-    "My neighbor Somchai was there too, but he moved away.",
-  ]);
+const TRANSCRIPT = [
+  { role: "bot", text: "Tell me about a place that matters to you." },
+  { role: "user", text: "The shrine by the canal. My grandmother took me every new year." },
+];
+const COVERAGE = { place: "touched", relationship: "covered", event: "open", feeling: "open" };
+
+test("buildFollowupRequest uses Haiku, embeds the transcript and open items, caps output", () => {
+  const req = buildFollowupRequest(TRANSCRIPT, COVERAGE, 5, "en");
   assert.equal(req.model, "claude-haiku-4-5-20251001");
-  assert.ok(req.max_tokens <= 300, "follow-up responses should be short");
-  assert.match(req.system, /do not.*(name|contact)/i);
+  assert.ok(req.max_tokens <= 500, "follow-up replies should stay short");
   const userText = req.messages[0].content;
-  assert.match(userText, /eviction notice/);
-  assert.match(userText, /Block 33/);
-  assert.match(userText, /Somchai/);
+  assert.match(userText, /grandmother/);
+  assert.match(userText, /place/); // an open coverage item is surfaced
+  assert.match(userText, /5/); // turns remaining is passed through
 });
 
-test("buildSynthesizeRequest includes the optional follow-up answer when present", () => {
-  const req = buildSynthesizeRequest(
-    ["A", "B", "C"],
-    "It was definitely a lease non-renewal, not a fire."
-  );
-  assert.match(req.messages[0].content, /lease non-renewal/);
-  assert.match(req.system, /only.*(reorganiz|structure|summariz)/i);
+test("buildFollowupRequest system prompt forbids inventing facts and names Jake", () => {
+  const req = buildFollowupRequest(TRANSCRIPT, COVERAGE, 5, "en");
+  assert.match(req.system, /Jake/);
+  assert.match(req.system, /never.*(introduce|invent|add).*(fact|date|name|number)/i);
+  assert.match(req.system, /coverage_update/); // instructs the JSON return shape
 });
 
-test("buildSynthesizeRequest omits follow-up section when there is none", () => {
-  const req = buildSynthesizeRequest(["A", "B", "C"], undefined);
-  assert.doesNotMatch(req.messages[0].content, /Follow-up/);
+test("buildSynthesizeRequest takes a transcript and asks for structured output", () => {
+  const req = buildSynthesizeRequest(TRANSCRIPT, "en");
+  assert.equal(req.model, "claude-haiku-4-5-20251001");
+  const userText = req.messages[0].content;
+  assert.match(userText, /grandmother/);
+  assert.match(req.system, /only.*(reorganiz|structure|summariz|what the contributor)/i);
+  assert.match(req.system, /"site"/);
+  assert.match(req.system, /null/); // may set site null when unclear
 });

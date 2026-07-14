@@ -1,5 +1,5 @@
 import { buildSynthesizeRequest, callClaude } from "../_lib/claude.js";
-import { validateAnswers } from "../_lib/validation.js";
+import { validateTranscript } from "../_lib/validation.js";
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -11,20 +11,16 @@ export async function onRequestPost(context) {
     return jsonResponse({ error: "invalid JSON body" }, 400);
   }
 
-  const validation = validateAnswers(body.answers);
-  if (!validation.ok) {
-    return jsonResponse({ error: validation.error }, 400);
-  }
-  if (body.followup_answer !== undefined) {
-    if (typeof body.followup_answer !== "string") {
-      return jsonResponse({ error: "followup_answer must be a string when present" }, 400);
-    }
-    if (body.followup_answer.length > 2000) {
-      return jsonResponse({ error: "followup_answer must be 2000 characters or fewer" }, 400);
-    }
-  }
+  const t = validateTranscript(body.transcript);
+  if (!t.ok) return jsonResponse({ error: t.error }, 400);
 
-  const claudeRequest = buildSynthesizeRequest(body.answers, body.followup_answer);
+  const lang = typeof body.language === "string" ? body.language : "en";
+  const claudeRequest = buildSynthesizeRequest(body.transcript, lang);
+
+  const fallbackDescription = body.transcript
+    .filter((turn) => turn.role === "user")
+    .map((turn) => turn.text)
+    .join("\n\n");
 
   let text;
   try {
@@ -37,18 +33,13 @@ export async function onRequestPost(context) {
   try {
     parsed = JSON.parse(text);
   } catch {
-    // Fail-safe: hand the raw answers back as an unstructured draft rather than erroring out.
-    return jsonResponse({
-      kind: "other",
-      site: "other",
-      description: body.answers.join("\n\n"),
-    });
+    return jsonResponse({ kind: "other", site: null, description: fallbackDescription });
   }
 
   return jsonResponse({
     kind: parsed.kind ?? "other",
-    site: parsed.site ?? "other",
-    description: parsed.description ?? body.answers.join("\n\n"),
+    site: parsed.site ?? null,
+    description: parsed.description ?? fallbackDescription,
   });
 }
 

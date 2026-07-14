@@ -1,28 +1,32 @@
 // interview.js
-// DOM wiring for the conversational intake flow. Not unit tested — verified
-// via manual QA. Never imported by the Node test suite, so it is safe for
-// this file to reference `document`/`fetch`-in-browser freely.
-import { FIXED_QUESTIONS, FIXED_QUESTIONS_I18N, nextStep } from "./interview-state.js";
+// DOM wiring for the adaptive intake conversation. Not unit tested — verified
+// via manual QA. Never imported by the Node test suite.
+import { createInitialState, mergeCoverage, shouldStop } from "./interview-state.js";
+
+const OPENING = {
+  en: "Hi, I'm Jake — I help look after this archive. No forms here, just tell me about a place near Sam Yan that matters to you.",
+  zh: "嗨，我是 Jake，帮忙照看这个档案。这里没有表格——跟我说说三养（Sam Yan）附近一个对你重要的地方吧。",
+  th: "สวัสดี ผมชื่อเจค ผมช่วยดูแลคลังเรื่องราวนี้ ที่นี่ไม่มีแบบฟอร์ม เล่าให้ฟังหน่อยได้ไหมว่ามีที่ไหนแถวสามย่านที่มีความหมายกับคุณ",
+};
 
 const STATUS_TEXT = {
-  en: { thinking: "Thinking…", organizing: "Organizing your answers…" },
-  zh: { thinking: "思考中…", organizing: "正在整理你的回答…" },
-  th: { thinking: "กำลังคิด…", organizing: "กำลังจัดเรียงคำตอบของคุณ…" },
+  en: { thinking: "Jake is thinking…", organizing: "Organizing your story…" },
+  zh: { thinking: "Jake 正在想…", organizing: "正在整理你的故事…" },
+  th: { thinking: "เจคกำลังคิด…", organizing: "กำลังเรียบเรียงเรื่องของคุณ…" },
 };
 
 const FALLBACK_ALERT_TEXT = {
-  en: "The AI assistant is temporarily unavailable, so we've carried your answers into the form below — please review and send it directly.",
-  zh: "AI 助手暂时无法使用，我们已把你的回答填入下方表单——请检查后直接发送。",
-  th: "ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว เราจึงนำคำตอบของคุณมาใส่ในแบบฟอร์มด้านล่างแล้ว — โปรดตรวจสอบแล้วส่งได้เลย",
+  en: "Jake is temporarily unavailable, so we've carried what you shared into the form below — please review and send it directly.",
+  zh: "Jake 暂时无法使用，我们已把你分享的内容填入下方表单——请检查后直接发送。",
+  th: "เจคไม่พร้อมใช้งานชั่วคราว เราจึงนำสิ่งที่คุณเล่ามาใส่ในแบบฟอร์มด้านล่างแล้ว — โปรดตรวจสอบแล้วส่งได้เลย",
 };
 
 function currentLang() {
   return document.body.dataset.lang || "en";
 }
-
-function statusText(key) {
+function pick(map) {
   const lang = currentLang();
-  return (STATUS_TEXT[lang] && STATUS_TEXT[lang][key]) || STATUS_TEXT.en[key];
+  return map[lang] || map.en;
 }
 
 function initInterviewFlow() {
@@ -40,9 +44,7 @@ function initInterviewFlow() {
   const statusEl = document.getElementById("interviewStatus");
   const aiDraftNotice = document.getElementById("aiDraftNotice");
 
-  const answers = [];
-  let state = { step: "q0", followupQuestion: null };
-  let followupAnswer;
+  let state = createInitialState();
   let started = false;
 
   toggle.querySelectorAll("[data-mode]").forEach((btn) => {
@@ -54,7 +56,9 @@ function initInterviewFlow() {
       submitForm.hidden = mode === "interview";
       if (mode === "interview" && !started) {
         started = true;
-        askCurrentQuestion();
+        addMessage(pick(OPENING), "bot");
+        state.transcript.push({ role: "bot", text: pick(OPENING) });
+        enableInput();
       }
     });
   });
@@ -67,17 +71,7 @@ function initInterviewFlow() {
     threadEl.scrollTop = threadEl.scrollHeight;
   }
 
-  function currentQuestions() {
-    const lang = currentLang();
-    return (FIXED_QUESTIONS_I18N && FIXED_QUESTIONS_I18N[lang]) || FIXED_QUESTIONS;
-  }
-
-  function askCurrentQuestion() {
-    if (state.step === "q0" || state.step === "q1" || state.step === "q2") {
-      addMessage(currentQuestions()[Number(state.step[1])], "bot");
-    } else if (state.step === "followup-question") {
-      addMessage(state.followupQuestion, "bot");
-    }
+  function enableInput() {
     answerEl.value = "";
     answerEl.disabled = false;
     nextBtn.disabled = false;
@@ -85,95 +79,105 @@ function initInterviewFlow() {
     answerEl.focus();
   }
 
+  function busy(key) {
+    nextBtn.disabled = true;
+    answerEl.disabled = true;
+    statusEl.textContent = pick(STATUS_TEXT)[key];
+  }
+
   async function handleNext() {
     const value = answerEl.value.trim();
     if (!value) return;
 
     addMessage(value, "user");
+    state.transcript.push({ role: "user", text: value });
+    state.turn += 1;
     answerEl.value = "";
 
-    if (state.step === "q0" || state.step === "q1" || state.step === "q2") {
-      answers.push(value);
-      if (state.step === "q2") {
-        nextBtn.disabled = true;
-        answerEl.disabled = true;
-        statusEl.textContent = statusText("thinking");
-        try {
-          const res = await fetch("/api/followup", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ answers }),
-          });
-          if (!res.ok) {
-            const errBody = await res.text().catch(() => "");
-            throw new Error(`followup request failed: ${res.status} ${errBody}`);
-          }
-          const data = await res.json();
-          state = { step: "checking-followup", followupQuestion: data.followup_question };
-        } catch (err) {
-          console.error("[interview] /api/followup failed:", err);
-          return fallbackToForm();
-        }
-      } else {
-        state = { step: nextStep(state), followupQuestion: null };
-        askCurrentQuestion();
-        return;
+    if (shouldStop(state)) return synthesize();
+
+    busy("thinking");
+    try {
+      const res = await fetch("/api/followup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          transcript: state.transcript,
+          coverage: state.coverage,
+          turn: state.turn,
+          language: currentLang(),
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => "");
+        throw new Error(`followup failed: ${res.status} ${errBody}`);
       }
-    } else if (state.step === "followup-question") {
-      followupAnswer = value;
-    }
-
-    state = { step: nextStep(state), followupQuestion: state.followupQuestion };
-
-    if (state.step === "followup-question") {
-      askCurrentQuestion();
-      return;
-    }
-
-    if (state.step === "synthesizing") {
-      nextBtn.disabled = true;
-      answerEl.disabled = true;
-      statusEl.textContent = statusText("organizing");
-      try {
-        const res = await fetch("/api/synthesize", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ answers, followup_answer: followupAnswer }),
-        });
-        if (!res.ok) {
-          const errBody = await res.text().catch(() => "");
-          throw new Error(`synthesize request failed: ${res.status} ${errBody}`);
-        }
-        const draft = await res.json();
-        applyDraftToForm(draft);
-        return;
-      } catch (err) {
-        console.error("[interview] /api/synthesize failed:", err);
-        return fallbackToForm();
+      const data = await res.json();
+      state.coverage = mergeCoverage(state.coverage, data.coverage_update);
+      if (data.reply) {
+        addMessage(data.reply, "bot");
+        state.transcript.push({ role: "bot", text: data.reply });
       }
+      if (shouldStop(state)) return synthesize();
+      enableInput();
+    } catch (err) {
+      console.error("[interview] /api/followup failed:", err);
+      fallbackToForm();
+    }
+  }
+
+  async function synthesize() {
+    busy("organizing");
+    try {
+      const res = await fetch("/api/synthesize", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ transcript: state.transcript, language: currentLang() }),
+      });
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => "");
+        throw new Error(`synthesize failed: ${res.status} ${errBody}`);
+      }
+      const draft = await res.json();
+      applyDraftToForm(draft);
+    } catch (err) {
+      console.error("[interview] /api/synthesize failed:", err);
+      fallbackToForm();
     }
   }
 
   function applyDraftToForm(draft) {
-    document.getElementById("kind").value = draft.kind;
-    document.getElementById("site").value = draft.site;
-    document.getElementById("description").value = draft.description;
+    if (draft.kind) document.getElementById("kind").value = draft.kind;
+    const siteEl = document.getElementById("site");
+    if (draft.site) siteEl.value = draft.site;
+    document.getElementById("description").value = draft.description || "";
+    submitForm.dataset.transcript = JSON.stringify(state.transcript);
+    submitForm.dataset.language = currentLang();
+    submitForm.dataset.source = "ai-interview";
     aiDraftNotice.hidden = false;
     interviewFlow.hidden = true;
     submitForm.hidden = false;
-    submitForm.dataset.source = "ai-interview";
+    // If the AI couldn't resolve a site, make the contributor choose it.
+    if (!draft.site) {
+      siteEl.value = "other";
+      siteEl.focus();
+    }
     submitForm.scrollIntoView({ behavior: "smooth" });
   }
 
   function fallbackToForm() {
     statusEl.textContent = "";
-    const parts = [...answers];
-    if (followupAnswer) parts.push(followupAnswer);
-    document.getElementById("description").value = parts.join("\n\n");
+    const userText = state.transcript
+      .filter((t) => t.role === "user")
+      .map((t) => t.text)
+      .join("\n\n");
+    document.getElementById("description").value = userText;
+    submitForm.dataset.transcript = JSON.stringify(state.transcript);
+    submitForm.dataset.language = currentLang();
+    submitForm.dataset.source = "form";
     interviewFlow.hidden = true;
     submitForm.hidden = false;
-    submitForm.dataset.source = "form";
-    alert(FALLBACK_ALERT_TEXT[currentLang()] || FALLBACK_ALERT_TEXT.en);
+    alert(pick(FALLBACK_ALERT_TEXT));
     submitForm.scrollIntoView({ behavior: "smooth" });
   }
 

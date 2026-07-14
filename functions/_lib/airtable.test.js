@@ -31,3 +31,33 @@ test("buildAirtableRecord omits Contact field entirely when not provided", () =>
   });
   assert.equal(record.fields.Contact, undefined);
 });
+
+test("buildAirtableRecord flattens transcript and includes language when present", () => {
+  const { fields } = buildAirtableRecord({
+    kind: "testimony",
+    site: "S05",
+    description: "a memory",
+    visibility: "private",
+    source: "ai-interview",
+    language: "th",
+    transcript: [
+      { role: "bot", text: "hi" },
+      { role: "user", text: "the shrine" },
+    ],
+  });
+  assert.equal(fields.Language, "th");
+  assert.match(fields.Transcript, /bot: hi/);
+  assert.match(fields.Transcript, /user: the shrine/);
+});
+
+test("buildAirtableRecord omits Transcript/Language when absent", () => {
+  const { fields } = buildAirtableRecord({
+    kind: "testimony",
+    site: "S05",
+    description: "a memory",
+    visibility: "private",
+    source: "form",
+  });
+  assert.equal(fields.Transcript, undefined);
+  assert.equal(fields.Language, undefined);
+});

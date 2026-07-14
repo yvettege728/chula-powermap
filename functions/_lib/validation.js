@@ -2,6 +2,48 @@
 
 const MAX_ANSWER_LENGTH = 2000;
 
+const VALID_ROLES = ["bot", "user"];
+const VALID_COVERAGE_STATES = ["open", "touched", "covered"];
+const COVERAGE_KEYS = ["place", "relationship", "event", "feeling"];
+const VALID_LANGUAGE = ["en", "zh", "th"];
+const MAX_TURN_LENGTH = 4000;
+
+export function validateTranscript(transcript) {
+  if (!Array.isArray(transcript) || transcript.length === 0) {
+    return { ok: false, error: "transcript must be a non-empty array" };
+  }
+  for (const turn of transcript) {
+    if (!turn || typeof turn !== "object") {
+      return { ok: false, error: "each transcript turn must be an object" };
+    }
+    if (!VALID_ROLES.includes(turn.role)) {
+      return { ok: false, error: "each turn role must be 'bot' or 'user'" };
+    }
+    if (typeof turn.text !== "string" || turn.text.trim().length === 0) {
+      return { ok: false, error: "each turn text must be a non-empty string" };
+    }
+    if (turn.text.length > MAX_TURN_LENGTH) {
+      return { ok: false, error: `each turn text must be ${MAX_TURN_LENGTH} characters or fewer` };
+    }
+  }
+  return { ok: true };
+}
+
+export function validateCoverage(coverage) {
+  if (!coverage || typeof coverage !== "object" || Array.isArray(coverage)) {
+    return { ok: false, error: "coverage must be an object" };
+  }
+  for (const key of Object.keys(coverage)) {
+    if (!COVERAGE_KEYS.includes(key)) {
+      return { ok: false, error: `unknown coverage key: ${key}` };
+    }
+    if (!VALID_COVERAGE_STATES.includes(coverage[key])) {
+      return { ok: false, error: `coverage.${key} must be open, touched, or covered` };
+    }
+  }
+  return { ok: true };
+}
+
 export function validateAnswers(answers) {
   if (!Array.isArray(answers) || answers.length !== 3) {
     return { ok: false, error: "answers must be an array of exactly 3 strings" };
@@ -46,6 +88,13 @@ export function validateSubmitPayload(payload) {
   }
   if (payload.contact !== undefined && typeof payload.contact !== "string") {
     return { ok: false, error: "contact must be a string when present" };
+  }
+  if (payload.language !== undefined && !VALID_LANGUAGE.includes(payload.language)) {
+    return { ok: false, error: `language must be one of ${VALID_LANGUAGE.join(", ")}` };
+  }
+  if (payload.transcript !== undefined) {
+    const t = validateTranscript(payload.transcript);
+    if (!t.ok) return t;
   }
   return { ok: true };
 }
