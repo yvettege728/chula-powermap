@@ -96,5 +96,10 @@ export function validateSubmitPayload(payload) {
     const t = validateTranscript(payload.transcript);
     if (!t.ok) return t;
   }
+  if (payload.audioClips !== undefined) {
+    if (!Array.isArray(payload.audioClips) || payload.audioClips.some((c) => typeof c !== "string")) {
+      return { ok: false, error: "audioClips must be an array of strings" };
+    }
+  }
   return { ok: true };
 }

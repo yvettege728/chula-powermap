@@ -381,12 +381,26 @@
           <button type="button" class="intake-toggle-btn" data-mode="interview" data-i18n="intake.chat">Have a conversation instead</button>
         </div>
 
-        <div class="interview-flow" id="interviewFlow" hidden>
+        <div class="interview-flow" id="interviewFlow" hidden data-avatar="idle">
+          <div class="jake-intro" id="jakeIntro" hidden>
+            <img class="jake-intro-frame" id="jakeIntroFrame" alt="" src="images_chatbot/intro/beat-1.png" />
+            <p class="jake-intro-caption" id="jakeIntroCaption" data-i18n="intro.beat1" aria-live="polite">You walk into a small café near Sam Yan.</p>
+            <p class="jake-intro-disclosure" data-i18n="intro.disclosure">The person behind the counter is Jake — an AI that helps this archive listen. A human volunteer reads everything before anything is published.</p>
+            <button type="button" class="jake-intro-skip" id="jakeIntroSkip" data-i18n="intro.skip">Skip</button>
+          </div>
+          <div class="jake-avatar" id="jakeAvatar" aria-hidden="true"></div>
           <div class="interview-notice" data-i18n="intake.notice">You're chatting with Jake, an AI helper for this archive. A human volunteer reads everything before anything is published.</div>
+          <div class="interview-consent" id="interviewConsent" hidden data-i18n="intake.consent">Your voice recording is kept as part of your story and stays in the archive unless you ask us to remove it. You can re-record before you send. Tap the mic again to agree and start.</div>
           <div class="interview-thread" id="interviewThread"></div>
           <textarea class="form-textarea interview-answer" id="interviewAnswer" maxlength="4000" data-i18n-ph="intake.ph" placeholder="Type your answer…"></textarea>
           <div class="interview-actions">
             <button type="button" class="btn-primary" id="interviewNext" data-i18n="intake.next">Next</button>
+            <button type="button" class="btn-secondary" id="interviewMic" data-i18n="intake.mic" aria-label="Record voice">Speak instead</button>
+            <span class="interview-recording" id="interviewRecording" hidden aria-live="polite">
+              <span data-i18n="intake.recording">Recording…</span>
+              <span id="interviewRecTime">0:00</span>
+              <button type="button" id="interviewRecStop" data-i18n="intake.stop">Stop</button>
+            </span>
             <span class="interview-status" id="interviewStatus"></span>
           </div>
         </div>
@@ -480,6 +494,7 @@
 
 <script src="dither.js"></script>
 <script type="module" src="interview.js"></script>
+<script type="module" src="intro.js"></script>
 <script>
 /* ============================================================
    i18n dictionary — EN / 中文 / ไทย
@@ -520,6 +535,18 @@ const I18N = {
     "intake.form": "Fill out the form",
     "intake.chat": "Have a conversation instead",
     "intake.notice": "You're chatting with Jake, an AI helper for this archive. A human volunteer reads everything before anything is published.",
+    "intake.mic": "Speak instead",
+    "intake.recording": "Recording…",
+    "intake.stop": "Stop",
+    "intake.consent": "Your voice recording is kept as part of your story and stays in the archive unless you ask us to remove it. You can re-record before you send. Tap the mic again to agree and start.",
+    "intake.micDenied": "No problem — you can type your answers instead.",
+    "intro.beat1": "You walk into a small café near Sam Yan.",
+    "intro.beat2": "You order at the counter — and meet Jake.",
+    "intro.beat3": "On the wall: old street scenes, the shrine, neighbours' faces.",
+    "intro.beat4": "Jake sets a warm cup in front of you.",
+    "intro.beat5": "“Tell me about a place that matters to you.”",
+    "intro.disclosure": "The person behind the counter is Jake — an AI that helps this archive listen. A human volunteer reads everything before anything is published.",
+    "intro.skip": "Skip",
     "intake.ph": "Type your answer…",
     "intake.next": "Next",
     "intake.draftNotice": "AI-assisted draft — please check it over before sending. Every field below is still yours to edit.",
@@ -586,6 +613,18 @@ const I18N = {
     "intake.form": "填写表单",
     "intake.chat": "改用对话方式",
     "intake.notice": "你正在和 Jake 聊天——这个档案的 AI 助手。发布前会有人工志愿者阅读全部内容。",
+    "intake.mic": "改用语音",
+    "intake.recording": "录音中…",
+    "intake.stop": "停止",
+    "intake.consent": "你的语音会作为你故事的一部分保存在档案里，除非你要求删除。发送前你可以重新录制。再点一次麦克风表示同意并开始。",
+    "intake.micDenied": "没关系——你可以改用打字回答。",
+    "intro.beat1": "你走进三养附近一家小小的咖啡馆。",
+    "intro.beat2": "你在柜台点单——遇见了 Jake。",
+    "intro.beat3": "墙上：旧街景、神庙、街坊的面孔。",
+    "intro.beat4": "Jake 把一杯热咖啡放到你面前。",
+    "intro.beat5": "“跟我说说一个对你重要的地方吧。”",
+    "intro.disclosure": "柜台后的这个人是 Jake——一个帮这个档案倾听的 AI。发布前会有人工志愿者阅读全部内容。",
+    "intro.skip": "跳过",
     "intake.ph": "在这里输入你的回答…",
     "intake.next": "下一步",
     "intake.draftNotice": "AI 协助整理的草稿——发送前请检查一遍。下方每一项内容你都可以修改。",
@@ -652,6 +691,18 @@ const I18N = {
     "intake.form": "กรอกแบบฟอร์ม",
     "intake.chat": "พูดคุยแทนการกรอกฟอร์ม",
     "intake.notice": "คุณกำลังคุยกับเจค ผู้ช่วย AI ของคลังเรื่องราวนี้ อาสาสมัครจะอ่านทุกอย่างก่อนเผยแพร่",
+    "intake.mic": "พูดแทนการพิมพ์",
+    "intake.recording": "กำลังบันทึกเสียง…",
+    "intake.stop": "หยุด",
+    "intake.consent": "เสียงของคุณจะถูกเก็บเป็นส่วนหนึ่งของเรื่องราวและอยู่ในคลังจนกว่าคุณจะขอให้ลบ คุณอัดใหม่ได้ก่อนส่ง แตะไมค์อีกครั้งเพื่อยอมรับและเริ่ม",
+    "intake.micDenied": "ไม่เป็นไร — คุณพิมพ์คำตอบแทนได้",
+    "intro.beat1": "คุณเดินเข้าไปในคาเฟ่เล็ก ๆ แถวสามย่าน",
+    "intro.beat2": "คุณสั่งเครื่องดื่มที่เคาน์เตอร์ — และได้พบเจค",
+    "intro.beat3": "บนผนัง: ภาพถนนเก่า ศาลเจ้า และใบหน้าผู้คนในย่าน",
+    "intro.beat4": "เจควางถ้วยกาแฟอุ่น ๆ ตรงหน้าคุณ",
+    "intro.beat5": "“เล่าให้ฟังหน่อยว่ามีที่ไหนที่มีความหมายกับคุณ”",
+    "intro.disclosure": "คนหลังเคาน์เตอร์คือเจค — AI ที่ช่วยคลังนี้รับฟัง อาสาสมัครจะอ่านทุกอย่างก่อนเผยแพร่",
+    "intro.skip": "ข้าม",
     "intake.ph": "พิมพ์คำตอบของคุณที่นี่…",
     "intake.next": "ถัดไป",
     "intake.draftNotice": "ร่างที่ AI ช่วยจัดทำ — โปรดตรวจสอบก่อนส่ง ทุกช่องด้านล่างคุณยังแก้ไขได้",
@@ -686,6 +737,7 @@ const I18N = {
   }
 };
 
+window.__CONTRIBUTE_I18N__ = I18N;
 function setLang(lang) {
   if (!I18N[lang]) lang = "en";
   const dict = I18N[lang];
@@ -732,6 +784,9 @@ document.getElementById("submitForm").addEventListener("submit", async (e) => {
   if (form.dataset.language) payload.language = form.dataset.language;
   if (form.dataset.transcript) {
     try { payload.transcript = JSON.parse(form.dataset.transcript); } catch {}
+  }
+  if (form.dataset.audioClips) {
+    try { payload.audioClips = JSON.parse(form.dataset.audioClips); } catch {}
   }
 
   try {

@@ -11,6 +11,7 @@
 import { onRequestPost as followupHandler } from "../functions/api/followup.js";
 import { onRequestPost as synthesizeHandler } from "../functions/api/synthesize.js";
 import { onRequestPost as submitHandler } from "../functions/api/submit.js";
+import { onRequestPost as voicePostHandler, onRequestGet as audioGetHandler } from "../functions/api/voice.js";
 
 export default {
   async fetch(request, env) {
@@ -24,6 +25,12 @@ export default {
     }
     if (request.method === "POST" && url.pathname === "/api/submit") {
       return submitHandler({ request, env });
+    }
+    if (request.method === "POST" && url.pathname === "/api/voice") {
+      return voicePostHandler({ request, env });
+    }
+    if (request.method === "GET" && url.pathname.startsWith("/api/audio/")) {
+      return audioGetHandler({ request, env });
     }
 
     // Fallback: hand anything else to static asset serving. This path

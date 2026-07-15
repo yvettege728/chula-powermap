@@ -111,8 +111,8 @@ Draft system prompts in Appendix B.
 
 ## 9. Open editorial questions (Yvette's calls, marked open)
 
-- **O1 — Audio retention policy:** how long clips live; who can access them. Archive-governance decision.
-- **O2 — Clip granularity:** one audio clip per spoken turn, or one stitched recording per submission.
+- **O1 — Audio retention policy:** resolved — **keep indefinitely, delete on the contributor's request** (consistent with the site's existing "withdraw anytime" promise). Consent copy reflects this; a withdrawal path is a manual/volunteer action, not automated in Phase B.
+- **O2 — Clip granularity:** resolved — **one clip per spoken turn**, each aligned to its transcript turn.
 - **O3 — Character name:** resolved — **Jake**.
 
 ## 10. File / impact map

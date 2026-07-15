@@ -19,6 +19,9 @@ export function buildAirtableRecord(payload) {
       ? payload.transcript.map((t) => `${t.role}: ${t.text}`).join("\n\n")
       : String(payload.transcript);
   }
+  if (Array.isArray(payload.audioClips) && payload.audioClips.length > 0) {
+    fields.Audio = payload.audioClips.join("\n");
+  }
   return { fields };
 }
 

@@ -14,5 +14,12 @@
   // Prevents future `wrangler deploy` runs (triggered automatically by every
   // git push) from wiping out the Secrets set via the Cloudflare dashboard
   // (ANTHROPIC_API_KEY, AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME).
-  "keep_vars": true
+  "keep_vars": true,
+  // Per-turn voice clips (Phase B). Create the bucket once with:
+  //   npx wrangler r2 bucket create chula-powermap-audio
+  "r2_buckets": [
+    { "binding": "AUDIO_BUCKET", "bucket_name": "chula-powermap-audio" }
+  ],
+  // Workers AI: Whisper transcription for spoken answers.
+  "ai": { "binding": "AI" }
 }

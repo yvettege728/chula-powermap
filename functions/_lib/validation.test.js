@@ -79,3 +79,20 @@ test("validateSubmitPayload rejects an unknown language", () => {
   });
   assert.equal(r.ok, false);
 });
+
+test("validateSubmitPayload accepts an audioClips array of R2 keys", () => {
+  const r = validateSubmitPayload({
+    kind: "testimony", site: "S05", description: "a memory",
+    visibility: "private", source: "ai-interview",
+    audioClips: ["sessions/abc/turn-000.webm", "sessions/abc/turn-001.webm"],
+  });
+  assert.equal(r.ok, true);
+});
+
+test("validateSubmitPayload rejects audioClips that aren't strings", () => {
+  const r = validateSubmitPayload({
+    kind: "testimony", site: "S05", description: "a memory",
+    visibility: "private", source: "ai-interview", audioClips: [42],
+  });
+  assert.equal(r.ok, false);
+});

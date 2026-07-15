@@ -545,3 +545,52 @@ img, svg, canvas { display: block; max-width: 100%; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   Phase C · Jake character + intro (chatbot intake)
+   ============================================================ */
+#interviewFlow {
+  position: relative;
+  background-image: url("images_chatbot/bg/cafe-light.png");
+  background-size: cover;
+  background-position: center;
+}
+@media (prefers-color-scheme: dark) {
+  #interviewFlow {
+    background-image: url("images_chatbot/bg/cafe-dark.png");
+  }
+}
+/* Keep the thread readable over the café texture. */
+#interviewThread {
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 12px;
+  padding: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  #interviewThread { background: rgba(20, 18, 16, 0.72); }
+}
+
+/* Jake avatar — image swaps with the conversation state. */
+.jake-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-image: url("images_chatbot/avatar/jake-idle.png");
+  margin: 0 0 10px;
+}
+#interviewFlow[data-avatar="thinking"]  .jake-avatar { background-image: url("images_chatbot/avatar/jake-thinking.png"); }
+#interviewFlow[data-avatar="listening"] .jake-avatar { background-image: url("images_chatbot/avatar/jake-listening.png"); }
+#interviewFlow[data-avatar="speaking"]  .jake-avatar { background-image: url("images_chatbot/avatar/jake-speaking.png"); }
+
+/* Opening walk-in intro overlay. */
+.jake-intro { position: relative; text-align: center; padding: 8px 0 4px; }
+.jake-intro-frame { width: 100%; max-width: 420px; border-radius: 12px; display: block; margin: 0 auto; }
+.jake-intro-caption { font-weight: 500; margin: 10px 0 4px; }
+.jake-intro-disclosure { font-size: 0.85rem; opacity: 0.8; max-width: 480px; margin: 0 auto; }
+.jake-intro-skip { position: absolute; top: 8px; right: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  /* JS shows the final frame immediately; nothing animates. */
+  .jake-intro-frame { transition: none !important; }
+}

@@ -61,3 +61,13 @@ test("buildAirtableRecord omits Transcript/Language when absent", () => {
   assert.equal(fields.Transcript, undefined);
   assert.equal(fields.Language, undefined);
 });
+
+test("buildAirtableRecord joins audioClips into the Audio field", () => {
+  const { fields } = buildAirtableRecord({
+    kind: "testimony", site: "S05", description: "a memory",
+    visibility: "private", source: "ai-interview",
+    audioClips: ["sessions/abc/turn-000.webm", "sessions/abc/turn-001.webm"],
+  });
+  assert.match(fields.Audio, /turn-000\.webm/);
+  assert.match(fields.Audio, /turn-001\.webm/);
+});
