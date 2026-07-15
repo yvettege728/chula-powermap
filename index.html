@@ -207,12 +207,14 @@ body[data-lang="th"] .i18n{font-family:var(--f-th);}
 
 /* ---------- CONTRIBUTE BAND ---------- */
 .contribute-band{
-  position:relative;z-index:1;padding:64px 0;
-  background:linear-gradient(160deg,var(--temple) 0%,var(--bg-deep) 100%);
-  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  position:relative;z-index:1;padding:104px 0;
+  background:
+    radial-gradient(ellipse 62% 78% at 50% 42%, var(--temple) 0%, transparent 72%),
+    var(--bg-deep);
+  border:none;
   text-align:center;
 }
-.contribute-band-inner{max-width:640px;margin:0 auto;padding:0 20px;}
+.contribute-band-inner{max-width:620px;margin:0 auto;padding:0 20px;}
 .contribute-band-eyebrow{
   font-family:var(--f-mono);font-size:11px;letter-spacing:0.16em;text-transform:uppercase;
   color:var(--lavender-dim);margin-bottom:18px;
@@ -223,18 +225,51 @@ body[data-lang="th"] .i18n{font-family:var(--f-th);}
 }
 .contribute-band-title em{font-style:italic;color:var(--green);}
 .contribute-band-lead{
-  font-size:15px;line-height:1.65;color:var(--lavender-dim);margin:0 0 30px;
+  font-size:15px;line-height:1.65;color:var(--lavender-dim);margin:0 0 34px;
 }
 .contribute-band-lead strong{color:var(--lavender);font-weight:600;}
-.contribute-band .btn-primary{
-  display:inline-flex;align-items:center;justify-content:center;gap:10px;
-  min-height:52px;padding:0 26px;box-sizing:border-box;
-  font-family:var(--f-mono);font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;
-  line-height:1;white-space:nowrap;border-radius:2px;text-decoration:none;
-  background:var(--green);color:var(--bg-deep);border:1px solid var(--green);
-  transition:transform 160ms,box-shadow 160ms;
+.contribute-band-cta{display:inline-flex;align-items:center;gap:16px;margin:0 0 16px;}
+.contribute-band-jake{
+  width:58px;height:58px;border-radius:50%;flex:none;
+  background:url("images_chatbot/avatar/jake-idle.png") center/cover, var(--temple);
+  border:1px solid var(--rule);
 }
-.contribute-band .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(95,184,146,0.25);}
+.contribute-band-actions{display:flex;flex-direction:column;align-items:flex-start;gap:5px;}
+.contribute-band .band-talk{
+  display:inline-flex;align-items:center;gap:9px;text-decoration:none;
+  font-family:var(--f-display);font-style:italic;font-size:24px;color:var(--green);
+  transition:gap 160ms;
+}
+.contribute-band .band-talk:hover{gap:14px;}
+.contribute-band .band-form{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--lavender-dim);text-decoration:none;border-bottom:1px solid transparent;
+}
+.contribute-band .band-form:hover{color:var(--lavender);border-bottom-color:var(--lavender-dim);}
+.contribute-band-note{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:0.06em;color:var(--lavender-dim);
+  opacity:0.7;margin:0;
+}
+/* ---------- FLOATING JAKE LAUNCHER ---------- */
+.jake-launcher{
+  position:fixed;right:22px;bottom:22px;z-index:900;
+  display:inline-flex;align-items:center;gap:11px;
+  padding:8px 18px 8px 8px;border-radius:999px;text-decoration:none;
+  background:var(--temple);border:1px solid var(--rule);color:var(--bone);
+  box-shadow:0 12px 34px rgba(0,0,0,0.4);
+  transition:transform 160ms,border-color 160ms,box-shadow 160ms;
+  animation:jakeLauncherIn 520ms cubic-bezier(.2,.7,.2,1) 700ms both;
+}
+.jake-launcher:hover{transform:translateY(-2px);border-color:var(--green);box-shadow:0 16px 40px rgba(95,184,146,0.22);}
+.jake-launcher-face{
+  width:42px;height:42px;border-radius:50%;flex:none;
+  background:url("images_chatbot/avatar/jake-idle.png") center/cover, var(--temple);
+  border:1px solid var(--rule);
+}
+.jake-launcher-label{font-family:var(--f-display);font-style:italic;font-size:19px;color:var(--green);white-space:nowrap;}
+@keyframes jakeLauncherIn{from{opacity:0;transform:translateY(18px) scale(.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+@media (max-width:560px){.jake-launcher{right:14px;bottom:14px;padding:6px 14px 6px 6px;}.jake-launcher-label{font-size:16px;}.jake-launcher-face{width:36px;height:36px;}}
+@media (prefers-reduced-motion:reduce){.jake-launcher{animation:none;}}
 
 /* ---------- FOOTER ---------- */
 .site-footer{border-top:1px solid var(--rule);padding:54px 0 40px;color:var(--lavender-dim);}
@@ -516,12 +551,14 @@ body[data-lang="th"] .i18n{font-family:var(--f-th);}
       data-en="Every site here has people who saw something the archive does not yet name. If that's you — or someone you know — <strong>we are always listening for your stories</strong>."
       data-zh="每一处场地，都有人见过档案尚未命名的事物。如果那是你，或是你认识的人，<strong>我们始终在倾听你们的故事</strong>。"
       data-th="ทุกพื้นที่ล้วนมีผู้คนที่ได้เห็นสิ่งที่คลังนี้ยังไม่ได้บันทึกชื่อไว้ หากนั่นคือคุณ หรือคนที่คุณรู้จัก <strong>เรายินดีรับฟังเรื่องราวของคุณเสมอ</strong>">Every site here has people who saw something the archive does not yet name. If that's you — or someone you know — <strong>we are always listening for your stories</strong>.</p>
-    <a class="btn-primary" href="contribute.html">
-      <span class="i18n" data-en="Tell your story" data-zh="讲述你的故事" data-th="เล่าเรื่องของคุณ">Tell your story</span>
-      <span aria-hidden="true">→</span>
-    </a>
   </div>
 </section>
+
+<!-- Floating Jake launcher — persistent entry point, bottom-right -->
+<a class="jake-launcher" href="contribute.html" aria-label="Talk to Jake">
+  <span class="jake-launcher-face" aria-hidden="true"></span>
+  <span class="jake-launcher-label i18n" data-en="Talk to Jake" data-zh="和 Jake 聊聊" data-th="คุยกับเจค">Talk to Jake</span>
+</a>
 
 <!-- ===================================================== FOOTER ===================================================== -->
 <footer class="site-footer">

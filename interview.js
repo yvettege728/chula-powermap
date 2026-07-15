@@ -1,7 +1,7 @@
 // interview.js
 // DOM wiring for the adaptive intake conversation, with optional voice input.
 // Not unit tested — verified via manual QA. Never imported by the Node test suite.
-import { createInitialState, mergeCoverage, shouldStop } from "./interview-state.js";
+import { createInitialState, mergeCoverage, shouldStop, TURN_CAP } from "./interview-state.js";
 
 const OPENING = {
   en: "Hi, I'm Jake — I help look after this archive. No forms here, just tell me about a place near Sam Yan that matters to you.",
@@ -57,6 +57,9 @@ function initInterviewFlow() {
   const nextBtn = document.getElementById("interviewNext");
   const statusEl = document.getElementById("interviewStatus");
   const aiDraftNotice = document.getElementById("aiDraftNotice");
+  const guideCol = document.getElementById("guideCol");
+  const typingEl = document.getElementById("interviewTyping");
+  const progressEl = document.getElementById("chatProgress");
 
   // Voice elements (present only when Phase B markup is in the page).
   const micBtn = document.getElementById("interviewMic");
@@ -83,29 +86,57 @@ function initInterviewFlow() {
 
   toggle.querySelectorAll("[data-mode]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      toggle.querySelectorAll("[data-mode]").forEach((b) => b.classList.remove("is-active"));
-      btn.classList.add("is-active");
       const mode = btn.dataset.mode;
+      toggle.hidden = true; // collapse the choice screen once chosen
+      if (guideCol) guideCol.hidden = mode !== "form";
       interviewFlow.hidden = mode !== "interview";
       submitForm.hidden = mode === "interview";
       if (mode === "interview" && !started) {
         started = true;
         addMessage(pick(OPENING), "bot");
         state.transcript.push({ role: "bot", text: pick(OPENING) });
+        updateProgress();
         enableInput();
       }
     });
   });
 
   function addMessage(text, who) {
-    const el = document.createElement("div");
-    el.className = "interview-msg interview-msg-" + who;
-    el.textContent = text;
-    threadEl.appendChild(el);
+    if (who === "bot") hideTyping();
+    const row = document.createElement("div");
+    row.className = "chat-row chat-row-" + who;
+    if (who === "bot") {
+      const av = document.createElement("div");
+      av.className = "chat-msg-avatar";
+      row.appendChild(av);
+    }
+    const bubble = document.createElement("div");
+    bubble.className = "interview-msg interview-msg-" + who;
+    bubble.textContent = text;
+    row.appendChild(bubble);
+    threadEl.appendChild(row);
     threadEl.scrollTop = threadEl.scrollHeight;
   }
 
+  function updateProgress() {
+    if (!progressEl) return;
+    const n = Math.min(state.turn + 1, TURN_CAP);
+    progressEl.textContent = `${n} / ${TURN_CAP}`;
+  }
+
+  function showTyping() {
+    if (typingEl) {
+      typingEl.hidden = false;
+      threadEl.scrollTop = threadEl.scrollHeight;
+    }
+  }
+
+  function hideTyping() {
+    if (typingEl) typingEl.hidden = true;
+  }
+
   function enableInput() {
+    hideTyping();
     answerEl.value = "";
     answerEl.disabled = false;
     nextBtn.disabled = false;
@@ -120,6 +151,7 @@ function initInterviewFlow() {
     answerEl.disabled = true;
     if (micBtn) micBtn.hidden = true;
     statusEl.textContent = pick(STATUS_TEXT)[key];
+    if (key === "thinking") showTyping();
   }
 
   // Shared path for a contributor turn, whether typed or transcribed from speech.
@@ -127,6 +159,7 @@ function initInterviewFlow() {
     addMessage(text, "user");
     state.transcript.push({ role: "user", text });
     state.turn += 1;
+    updateProgress();
     answerEl.value = "";
 
     if (shouldStop(state)) return synthesize();
